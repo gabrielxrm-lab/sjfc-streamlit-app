@@ -4,11 +4,12 @@ import data_manager
 import json
 from datetime import datetime
 import time
+import os
 
 # Configuração da página (deve ser o primeiro comando Streamlit)
 st.set_page_config(
-    page_title="São Jorge FC - Central",
-    page_icon="⚽",
+    page_title="Central do São Jorge FC",
+    page_icon="🛡️",
     layout="wide"
 )
 
@@ -17,7 +18,10 @@ data_manager.initialize_session_state()
 
 # --- Barra Lateral (Sidebar) ---
 with st.sidebar:
-    st.image("logo_sao_jorge.png", width=150)
+    logo_path = "logo_sao_jorge.png"
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=150)
+    
     st.title("São Jorge FC")
     st.write("---")
 
@@ -46,7 +50,7 @@ with st.sidebar:
             new_data = json.load(uploaded_file)
             st.session_state['dados'] = new_data
             data_manager.save_data()
-            st.success("Dados restaurados com sucesso! A página será recarregada.")
+            st.success("Dados restaurados! A página será recarregada.")
             time.sleep(2)
             st.rerun()
         except Exception as e:
@@ -54,19 +58,13 @@ with st.sidebar:
 
 
 # --- Página Principal ---
-st.title("⚽ Central de Dados do São Jorge FC")
+st.title("🛡️ Central de Dados do São Jorge FC")
 st.markdown("##### // Monitoramento de Performance de Atletas //")
 st.write("---")
 st.header("Bem-vindo!")
-st.write("""
-Use o menu na barra lateral para navegar entre as seções:
-
--   **Gerenciar Jogadores:** Cadastre, edite e visualize os atletas do clube.
--   **Mensalidades:** Controle os pagamentos mensais de cada jogador.
--   **Nova Súmula:** Registre todos os detalhes de uma partida.
--   **Sorteio de Times:** Divida os jogadores em duas equipes de forma equilibrada.
-
-**Importante:** Após fazer alterações (cadastrar um jogador, alterar um pagamento, etc.), clique no botão **"Salvar Todas as Alterações"** na barra lateral para garantir que seus dados sejam persistidos.
+st.info("""
+Use o menu na barra lateral para navegar entre as seções.
+**Importante:** Após fazer alterações, clique no botão **"Salvar Todas as Alterações"** para garantir que seus dados sejam gravados no arquivo `player_stats.json`.
 """)
 
 # Checar mensalidades atrasadas no início
