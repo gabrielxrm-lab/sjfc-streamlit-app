@@ -1,8 +1,8 @@
-# pages/1_⚽_Gerenciar_Jogadores.py
 import streamlit as st
 import pandas as pd
 import data_manager
 from datetime import datetime
+import os # <-- LINHA ADICIONADA AQUI
 
 # --- LÓGICA DE PERMISSÃO ---
 IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
@@ -25,7 +25,6 @@ if not IS_DIRETORIA:
 # --- Formulário para Adicionar/Editar Jogador (condicional) ---
 if IS_DIRETORIA:
     with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente"):
-        # ... (o código do formulário permanece o mesmo)
         jogadores_lista = st.session_state.dados.get('players', []); jogadores_nomes = ["Novo Jogador"] + sorted([p['name'] for p in jogadores_lista]); selected_player_name = st.selectbox("Selecione um jogador para editar ou 'Novo Jogador'", jogadores_nomes); player_to_edit = None
         if selected_player_name != "Novo Jogador": player_to_edit = next((p for p in jogadores_lista if p['name'] == selected_player_name), None)
         with st.form("player_form", clear_on_submit=True):
@@ -41,7 +40,6 @@ if IS_DIRETORIA:
 
 # --- Lista de Jogadores ---
 st.header("Elenco Atual")
-# ... (código da lista de jogadores e da ficha detalhada permanece o mesmo)
 df_players = data_manager.get_players_df()
 if not df_players.empty:
     st.dataframe(df_players.drop(columns=['created_at'], errors='ignore'), use_container_width=True, hide_index=True)
