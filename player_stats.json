@@ -1,0 +1,33 @@
+{
+    "players": [
+        {
+            "id": "player-1759778796",
+            "name": "GABRIEL CONRADO",
+            "position": "GOLEIRO",
+            "date_of_birth": "20/06/1995",
+            "phone": "21 97275-7256",
+            "photo_file": "gb goleiro.jpg",
+            "team_start_date": "06/10/2025"
+        }
+    ],
+    "game_stats": [],
+    "monthly_payments": {
+        "2025": {
+            "player-1759778796": {
+                "1": "Paga",
+                "2": "Paga",
+                "3": "Paga",
+                "4": "Paga",
+                "5": "Paga",
+                "6": "Paga",
+                "7": "Paga",
+                "8": "Paga",
+                "9": "Atrasada",
+                "10": "Atrasada",
+                "11": "Atrasada",
+                "12": "Atrasada"
+            }
+        }
+    },
+    "game_summaries": {}
+}
