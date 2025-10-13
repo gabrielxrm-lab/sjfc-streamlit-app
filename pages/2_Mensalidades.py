@@ -10,10 +10,18 @@ if 'dados' not in st.session_state:
 
 st.title("Controle de Mensalidades")
 
-# --- Seletor de Ano ---
-current_year = datetime.now().year
-selected_year = st.selectbox("Selecione o Ano", range(current_year - 2, current_year + 5), index=2)
-selected_year_str = str(selected_year)
+# --- Seletor de Ano e Botão Salvar ---
+c1, c2 = st.columns([1, 3])
+with c1:
+    current_year = datetime.now().year
+    selected_year = st.selectbox("Selecione o Ano", range(current_year - 2, current_year + 5), index=2)
+    selected_year_str = str(selected_year)
+with c2:
+    st.write("") # Apenas para alinhamento vertical
+    st.write("")
+    # Botão de salvar adicionado aqui
+    if st.button("💾 Salvar Alterações na Nuvem", use_container_width=True, type="primary"):
+        data_manager.save_data_to_db()
 
 # --- Tabela de Mensalidades ---
 jogadores = st.session_state.dados.get('players', [])
@@ -35,17 +43,16 @@ else:
 
     df_payments = pd.DataFrame(payment_data)
 
-    st.info("Clique nas caixas para alterar o status (marcado = Paga). Salve na barra lateral.")
-    
+    st.info("Clique nas caixas para alterar o status (marcado = Paga). Depois clique em 'Salvar' acima.")
+
     if not df_payments.empty:
-        # A tabela agora está sempre habilitada para edição
         edited_df = st.data_editor(
             df_payments,
             column_config={
                 "player_id": None, 
                 **{mes: st.column_config.CheckboxColumn(f"{mes}", default=False) for mes in meses}
             },
-            disabled=False, # <-- MUDANÇA PRINCIPAL AQUI
+            disabled=False,
             use_container_width=True, 
             hide_index=True, 
             key=f"editor_{selected_year}"
