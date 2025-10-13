@@ -1,76 +1,119 @@
 # data_manager.py
 import streamlit as st
-import json
 import os
 import pandas as pd
 from datetime import datetime
+from supabase import create_client, Client
 
-ARQUIVO_DADOS = 'player_stats.json'
+# --- Configurações ---
 PLAYER_PHOTOS_DIR = 'player_photos'
 SUMULA_LEGACY_DIR = 'sumulas'
 
-# Estrutura de dados padrão
-DEFAULT_DATA = {
-    'players': [],
-    'game_stats': [],
-    'monthly_payments': {},
-    'game_summaries': {}
-}
+# --- Conexão com Supabase ---
+@st.cache_resource
+def init_supabase_client():
+    """Inicializa e retorna o cliente Supabase."""
+    try:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"Erro ao conectar com o Supabase: {e}")
+        st.warning("Verifique se as configurações [supabase] estão corretas no seu secrets.toml.")
+        return None
 
+supabase: Client = init_supabase_client()
+
+# --- Funções de Dados ---
 def initialize_session_state():
-    """Inicializa o session_state se ainda não foi feito."""
+    """Carrega os dados do Supabase para o session_state."""
     if 'dados' not in st.session_state:
-        st.session_state['dados'] = load_data()
-    # Garante que todas as pastas existam
+        st.session_state['dados'] = load_data_from_db()
+
     os.makedirs(PLAYER_PHOTOS_DIR, exist_ok=True)
     os.makedirs(SUMULA_LEGACY_DIR, exist_ok=True)
 
-def load_data():
-    """Carrega os dados do arquivo JSON."""
-    if os.path.exists(ARQUIVO_DADOS):
-        try:
-            with open(ARQUIVO_DADOS, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                # Garante que todas as chaves principais existam
-                for key in DEFAULT_DATA:
-                    if key not in data:
-                        data[key] = DEFAULT_DATA[key]
-                return data
-        except (json.JSONDecodeError, Exception) as e:
-            st.error(f"Erro ao ler o arquivo de dados: {e}. Usando dados padrão.")
-            return DEFAULT_DATA.copy()
-    else:
-        st.warning("Arquivo de dados não encontrado. Um novo será criado ao salvar.")
-        return DEFAULT_DATA.copy()
+def load_data_from_db():
+    """Carrega todos os dados do Supabase."""
+    if not supabase: return {'players': [], 'monthly_payments': {}}
+
+    try:
+        # Carrega jogadores
+        players_response = supabase.table('players').select('*').execute()
+        players_data = players_response.data
+
+        # Carrega pagamentos
+        payments_response = supabase.table('monthly_payments').select('*').execute()
+        payments_data = payments_response.data
+
+        # Formata os pagamentos no formato antigo para compatibilidade
+        monthly_payments = {}
+        for p in payments_data:
+            year_str = str(p['year'])
+            month_str = str(p['month'])
+            player_name = p['player_name'] # Usando nome como chave, como antes
+
+            if year_str not in monthly_payments:
+                monthly_payments[year_str] = {}
+            if player_name not in monthly_payments[year_str]:
+                monthly_payments[year_str][player_name] = {}
+            monthly_payments[year_str][player_name][month_str] = p['status']
+
+        st.toast("Dados carregados do banco de dados.", icon="☁️")
+        return {'players': players_data, 'monthly_payments': monthly_payments}
+
+    except Exception as e:
+        st.error(f"Erro ao carregar dados do banco de dados: {e}")
+        return {'players': [], 'monthly_payments': {}}
 
 def save_data():
-    """Salva os dados do session_state no arquivo JSON."""
-    if 'dados' in st.session_state:
-        try:
-            with open(ARQUIVO_DADOS, 'w', encoding='utf-8') as f:
-                json.dump(st.session_state['dados'], f, indent=4, ensure_ascii=False)
-            st.toast("✅ Dados salvos com sucesso!", icon="💾")
-        except Exception as e:
-            st.error(f"Erro ao salvar dados: {e}")
+    """Salva as alterações no Supabase."""
+    if not supabase or 'dados' not in st.session_state:
+        return
 
+    try:
+        # Salvar Jogadores (Upsert: atualiza se existe, insere se não)
+        players_to_save = st.session_state.dados['players']
+        if players_to_save:
+            supabase.table('players').upsert(players_to_save).execute()
+
+        # Salvar Pagamentos (Abordagem de deletar e recriar para simplicidade)
+        # Primeiro, deleta todos os pagamentos existentes para os jogadores atuais
+        all_player_names = [p['name'] for p in st.session_state.dados['players']]
+        if all_player_names:
+            supabase.table('monthly_payments').delete().in_('player_name', all_player_names).execute()
+
+        # Depois, insere os novos dados de pagamento
+        payments_to_insert = []
+        payments_data = st.session_state.dados.get('monthly_payments', {})
+        for year, players in payments_data.items():
+            for player_name, months in players.items():
+                for month, status in months.items():
+                    payments_to_insert.append({
+                        'player_name': player_name,
+                        'year': int(year),
+                        'month': int(month),
+                        'status': status
+                    })
+
+        if payments_to_insert:
+            supabase.table('monthly_payments').insert(payments_to_insert).execute()
+
+        st.toast("✅ Dados salvos no banco de dados com sucesso!", icon="💾")
+    except Exception as e:
+        st.error(f"Erro ao salvar dados no banco de dados: {e}")
+
+
+# --- Funções Auxiliares (adaptadas) ---
 def get_players_df():
-    """Retorna um DataFrame do Pandas com os jogadores."""
     if 'dados' in st.session_state and st.session_state['dados']['players']:
         return pd.DataFrame(st.session_state['dados']['players'])
     return pd.DataFrame()
 
-def get_player_by_id(player_id):
-    """Busca um jogador pelo seu ID."""
+# O resto das funções auxiliares (get_player_by_id, etc.) precisa ser adaptado
+# para a nova estrutura de dados (sem 'id' de texto)
+def get_player_by_name(player_name):
     for player in st.session_state.dados['players']:
-        if player['id'] == player_id:
+        if player['name'] == player_name:
             return player
     return None
-
-def get_player_name_by_id(player_id):
-    """Busca o nome de um jogador pelo seu ID."""
-    player = get_player_by_id(player_id)
-    return player['name'] if player else "Jogador não encontrado"
-
-def generate_new_player_id():
-    """Gera um ID único para um novo jogador."""
-    return f"player-{int(datetime.now().timestamp())}"
