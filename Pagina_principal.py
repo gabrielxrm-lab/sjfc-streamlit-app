@@ -1,97 +1,138 @@
-# Home.py
+# data_manager.py
 import streamlit as st
-import data_manager
 import os
-import streamlit.components.v1 as components
+import pandas as pd
+from datetime import datetime
+from supabase import create_client, Client
+import io
 
-# --- Configuração da Página ---
-st.set_page_config(
-    page_title="Central do São Jorge FC",
-    page_icon="🛡️",
-    layout="wide"
-)
+# --- Configurações ---
+PLAYER_PHOTOS_DIR = 'player_photos' # Usado apenas como fallback local
+SUMULA_LEGACY_DIR = 'sumulas'
+SUPABASE_BUCKET_NAME = "arquivos_sjfc" # O nome do bucket que você criou
 
-# --- LÓGICA DE PERFIL E LOGIN ---
-def handle_profile_selection():
-    """Gerencia a seleção de perfil e o login da diretoria na barra lateral."""
-    if 'role' not in st.session_state:
-        st.session_state.role = 'Visitante'
+# --- Conexão com Supabase ---
+@st.cache_resource
+def init_supabase_client():
+    try:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error("Falha na conexão com o Supabase. Verifique suas chaves em 'Secrets'.")
+        return None
 
-    st.sidebar.title("Perfil de Acesso")
-    profile = st.sidebar.radio(
-        "Selecione seu perfil:",
-        ('Visitante', 'Diretoria'),
-        index=0 if st.session_state.role == 'Visitante' else 1,
-        key='profile_selection'
-    )
+supabase: Client = init_supabase_client()
 
-    if profile == 'Diretoria':
-        if st.session_state.role == 'Diretoria':
-            st.sidebar.success(f"Logado como Diretoria.")
-            if st.sidebar.button("Sair do modo Edição"):
-                st.session_state.role = 'Visitante'
-                st.rerun()
+# --- NOVAS FUNÇÕES DE STORAGE ---
+
+def upload_file_to_storage(file_bytes, destination_path):
+    """Faz o upload de um arquivo em bytes para o Supabase Storage."""
+    if not supabase:
+        st.error("Não foi possível fazer o upload: cliente Supabase não conectado.")
+        return None
+    try:
+        # A biblioteca do supabase espera um arquivo, então usamos BytesIO
+        file_like_object = io.BytesIO(file_bytes)
+        
+        # O supabase-py não tem um método 'upload' direto para BytesIO, então usamos 'storage.from_("bucket").upload'
+        # O método abaixo é uma forma de contornar isso usando a API de forma mais direta se necessário,
+        # mas vamos tentar a forma padrão primeiro.
+        
+        # O método de upload espera um arquivo no disco, vamos adaptar para memória
+        # A forma correta é usar o método `upload` que aceita um objeto de arquivo
+        response = supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
+            path=destination_path,
+            file=file_like_object
+        )
+        
+        # Após o upload, obtemos a URL pública
+        return get_public_url(destination_path)
+    except Exception as e:
+        # Trata o caso de o arquivo já existir
+        if "Duplicate" in str(e) or "already exists" in str(e):
+            st.toast(f"Arquivo '{destination_path}' já existe no Storage. Usando o existente.")
+            return get_public_url(destination_path)
         else:
-            password = st.sidebar.text_input("Senha da Diretoria:", type="password")
-            if st.sidebar.button("Entrar como Diretoria"):
-                if password == st.secrets["credentials"]["diretoria_password"]:
-                    st.session_state.role = 'Diretoria'
-                    st.rerun()
-                else:
-                    st.sidebar.error("Senha incorreta.")
-    else:
-        st.session_state.role = 'Visitante'
+            st.error(f"Erro no upload do arquivo: {e}")
+            return None
 
-# --- Roda a lógica de perfil e inicializa os dados ---
-handle_profile_selection()
-data_manager.initialize_session_state()
+def get_public_url(path):
+    """Obtém a URL pública de um arquivo no Storage."""
+    if not supabase:
+        return None
+    try:
+        response = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(path)
+        return response
+    except Exception as e:
+        st.error(f"Erro ao obter URL pública: {e}")
+        return None
 
-# --- Barra Lateral (Restante) ---
-with st.sidebar:
-    st.write("---")
-    logo_path = "logo_sao_jorge.png"
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=150)
-    st.title("São Jorge FC")
-
-# --- Página Principal ---
-st.title("🛡️ Central de Dados do São Jorge FC")
-if st.session_state.role == 'Diretoria':
-    st.markdown("##### 🔑 Você está no modo **Diretoria**. Todas as funções de edição estão ativadas.")
-else:
-    st.markdown("##### 👁️ Você está no modo **Visitante**. Apenas visualização está disponível.")
-st.write("---")
-
-# --- CONTADOR REGRESSIVO ---
-st.header("⏳ Próximo Jogo")
-# (O código do contador continua o mesmo, por isso foi omitido para encurtar)
-countdown_html = """
-<style>
-    .countdown-container { font-family: 'Consolas', 'Monaco', monospace; text-align: center; background-color: #262730; padding: 20px; border-radius: 10px; color: #FAFAFA; font-size: 1.5rem; }
-    .countdown-time { font-size: 2.5rem; font-weight: bold; color: #1E88E5; letter-spacing: 5px; }
-    .countdown-label { font-size: 1rem; text-transform: uppercase; }
-</style>
-<div class="countdown-container">
-  <p class="countdown-label">Contagem regressiva para Domingo, 07:00</p>
-  <div id="countdown" class="countdown-time">Calculando...</div>
-</div>
-<script>
-    function startCountdown() {
-        const countdownElement = document.getElementById('countdown'); if (!countdownElement) return;
-        const interval = setInterval(() => {
-            const now = new Date(); let nextSunday = new Date(); nextSunday.setDate(now.getDate() + (7 - now.getDay()) % 7); nextSunday.setHours(7, 0, 0, 0);
-            if (nextSunday < now) { nextSunday.setDate(nextSunday.getDate() + 7); }
-            const distance = nextSunday - now;
-            if (distance < 0) { countdownElement.innerHTML = "É DIA DE JOGO!"; clearInterval(interval); return; }
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24)); const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)); const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)); const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            const fHours = hours.toString().padStart(2, '0'); const fMinutes = minutes.toString().padStart(2, '0'); const fSeconds = seconds.toString().padStart(2, '0');
-            countdownElement.innerHTML = `${days}d ${fHours}h ${fMinutes}m ${fSeconds}s`;
-        }, 1000);
-    }
-    startCountdown();
-</script>
-"""
-components.html(countdown_html, height=150)
-
-st.write("---")
-st.info("Use o menu na barra lateral para navegar. Para editar, selecione o perfil 'Diretoria' e insira a senha.")
+# --- Funções de Dados (permanecem as mesmas) ---
+def initialize_session_state():
+    #... (código sem alteração)
+    if 'dados' not in st.session_state:
+        st.session_state['dados'] = load_data_from_db()
+    os.makedirs(PLAYER_PHOTOS_DIR, exist_ok=True); os.makedirs(SUMULA_LEGACY_DIR, exist_ok=True)
+def load_data_from_db():
+    #... (código sem alteração)
+    if not supabase: return {'players': [], 'monthly_payments': {}, 'game_stats': []}
+    try:
+        players_response = supabase.table('Players').select('*').order('name').execute(); players_data = players_response.data
+        payments_response = supabase.table('monthly_payments').select('*').execute(); payments_data = payments_response.data
+        stats_response = supabase.table('game_stats').select('*').execute(); stats_data = stats_response.data
+        monthly_payments_structured = {}
+        for p in payments_data:
+            year_str, month_str, player_id_str = str(p['year']), str(p['month']), str(p['player_id'])
+            if year_str not in monthly_payments_structured: monthly_payments_structured[year_str] = {}
+            if player_id_str not in monthly_payments_structured[year_str]: monthly_payments_structured[year_str][player_id_str] = {}
+            monthly_payments_structured[year_str][player_id_str][month_str] = p['status']
+        st.toast("Dados carregados da nuvem.", icon="☁️"); return {'players': players_data, 'monthly_payments': monthly_payments_structured, 'game_stats': stats_data}
+    except Exception as e: st.error(f"Erro ao carregar dados do Supabase: {e}"); return {'players': [], 'monthly_payments': {}, 'game_stats': []}
+def save_data_to_db():
+    #... (código sem alteração)
+    if not supabase or 'dados' not in st.session_state: st.error("Cliente Supabase não inicializado."); return
+    try:
+        players_to_save = st.session_state.dados.get('players', [])
+        if players_to_save:
+            for player in players_to_save:
+                if 'id' in player and player['id'] is None: del player['id']
+            supabase.table('Players').upsert(players_to_save).execute()
+        payments_to_insert = []
+        player_ids_in_app = [p['id'] for p in players_to_save if 'id' in p]
+        if player_ids_in_app:
+            supabase.table('monthly_payments').delete().in_('player_id', player_ids_in_app).execute()
+            payments_data = st.session_state.dados.get('monthly_payments', {})
+            for year, players in payments_data.items():
+                for player_id, months in players.items():
+                    if int(player_id) in player_ids_in_app:
+                        for month, status in months.items():
+                            payments_to_insert.append({'player_id': int(player_id), 'year': int(year), 'month': int(month), 'status': status})
+            if payments_to_insert:
+                supabase.table('monthly_payments').insert(payments_to_insert).execute()
+        st.success("✅ Dados de jogadores e mensalidades salvos na nuvem!")
+        st.session_state['dados'] = load_data_from_db()
+        st.rerun()
+    except Exception as e: st.error(f"Erro ao salvar dados no Supabase: {e}")
+def save_game_stats_to_db(stats_list):
+    #... (código sem alteração)
+    if not supabase or not stats_list: return
+    try:
+        supabase.table('game_stats').insert(stats_list).execute(); st.success("📊 Estatísticas da partida salvas com sucesso!")
+        st.session_state['dados']['game_stats'].extend(stats_list)
+    except Exception as e: st.error(f"Erro ao salvar estatísticas da partida: {e}")
+def delete_players_by_ids(ids_to_delete):
+    #... (código sem alteração)
+    if not supabase or not ids_to_delete: return
+    try:
+        supabase.table('Players').delete().in_('id', ids_to_delete).execute(); st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
+    except Exception as e: st.error(f"Erro ao deletar jogadores: {e}")
+def get_players_df():
+    #... (código sem alteração)
+    players = st.session_state.dados.get('players', []); return pd.DataFrame(players) if players else pd.DataFrame()
+def get_player_name_by_id(player_id):
+    #... (código sem alteração)
+    player_id = int(player_id)
+    for player in st.session_state.dados.get('players', []):
+        if player['id'] == player_id: return player['name']
+    return "Jogador não encontrado"
