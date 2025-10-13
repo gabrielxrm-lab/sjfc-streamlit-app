@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import data_manager
+import os
 from datetime import datetime
 
 st.set_page_config(layout="wide", page_title="Gerenciar Jogadores")
@@ -31,13 +32,40 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
         dob = st.text_input("Data Nasc. (DD/MM/AAAA)", value=player_to_edit.get('date_of_birth', '') if player_to_edit else "")
         phone = st.text_input("Telefone", value=player_to_edit.get('phone', '') if player_to_edit else "")
         
+        # --- CAMPO DE UPLOAD DE FOTO REINTEGRADO ---
+        uploaded_photo = st.file_uploader("Foto do Jogador (.png, .jpg)", type=['png', 'jpg', 'jpeg'])
+        current_photo = player_to_edit.get('photo_file', '') if player_to_edit else ''
+        if current_photo:
+            st.caption(f"Foto atual: {current_photo}")
+        
         submitted = st.form_submit_button("Adicionar/Atualizar na Lista")
         if submitted:
             if not name or not position: st.error("Nome e Posição são obrigatórios.")
             else:
-                player_data = {'name': name.upper(),'position': position,'date_of_birth': dob, 'phone': phone,'photo_file': player_to_edit.get('photo_file', '') if player_to_edit else ''}
-                if player_to_edit: player_to_edit.update(player_data); st.success(f"Jogador '{name}' atualizado na lista local.")
-                else: player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y'); st.session_state.dados['players'].append(player_data); st.success(f"Jogador '{name}' adicionado à lista local.")
+                # --- LÓGICA PARA SALVAR A FOTO ---
+                photo_filename = current_photo
+                if uploaded_photo is not None:
+                    # Se uma nova foto foi enviada, salva ela na pasta
+                    photo_filename = uploaded_photo.name
+                    dest_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, photo_filename)
+                    with open(dest_path, "wb") as f:
+                        f.write(uploaded_photo.getbuffer())
+                    st.toast(f"Foto '{photo_filename}' salva localmente.")
+                
+                # Prepara os dados do jogador com o nome do arquivo da foto
+                player_data = {
+                    'name': name.upper(), 'position': position, 'date_of_birth': dob, 
+                    'phone': phone, 'photo_file': photo_filename
+                }
+                
+                if player_to_edit: 
+                    player_to_edit.update(player_data)
+                    st.success(f"Jogador '{name}' atualizado na lista local.")
+                else: 
+                    player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y')
+                    st.session_state.dados['players'].append(player_data)
+                    st.success(f"Jogador '{name}' adicionado à lista local.")
+                
                 st.info("Lembre-se de salvar as alterações na nuvem.")
                 st.rerun()
 
