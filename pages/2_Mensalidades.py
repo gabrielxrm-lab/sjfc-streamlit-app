@@ -13,48 +13,51 @@ current_year = datetime.now().year
 selected_year = st.selectbox("Selecione o Ano", range(current_year - 2, current_year + 5), index=2)
 selected_year_str = str(selected_year)
 
-jogadores = sorted(st.session_state.dados['players'], key=lambda p: p['name'])
+jogadores = st.session_state.dados.get('players', [])
 if not jogadores:
-    st.warning("Nenhum jogador cadastrado. Adicione jogadores na aba 'Gerenciar Jogadores'.")
+    st.warning("Nenhum jogador cadastrado.")
 else:
+    # Cria um mapeamento de ID para Nome para usar no DataFrame
+    player_id_to_name = {str(p['id']): p['name'] for p in jogadores}
+    
     payment_data = []
     meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
 
-    if selected_year_str not in st.session_state.dados['monthly_payments']:
-        st.session_state.dados['monthly_payments'][selected_year_str] = {}
-
-    for jogador in jogadores:
-        player_id = jogador['id']
-        if player_id not in st.session_state.dados['monthly_payments'][selected_year_str]:
-            st.session_state.dados['monthly_payments'][selected_year_str][player_id] = {}
-
-        row = {'Jogador': jogador['name']}
+    payments_this_year = st.session_state.dados.get('monthly_payments', {}).get(selected_year_str, {})
+    
+    for player_id_str, player_name in player_id_to_name.items():
+        row = {'Jogador': player_name, 'player_id': player_id_str}
+        player_payments = payments_this_year.get(player_id_str, {})
         for i, mes in enumerate(meses, 1):
-            status = st.session_state.dados['monthly_payments'][selected_year_str][player_id].get(str(i), "Atrasada")
-            row[mes] = status == "Paga"
+            status = player_payments.get(str(i), "Atrasada")
+            row[mes] = (status == "Paga")
         payment_data.append(row)
 
     df_payments = pd.DataFrame(payment_data)
 
-    st.info("Clique nas caixas de seleção para alterar o status de pagamento (marcado = Paga).")
+    st.info("Clique nas caixas para alterar o status (marcado = Paga). Salve na barra lateral.")
 
-    edited_df = st.data_editor(
-        df_payments,
-        column_config={
-            mes: st.column_config.CheckboxColumn(f"{mes}", default=False) for mes in meses
-        },
-        disabled=["Jogador"],
-        use_container_width=True,
-        hide_index=True,
-        key=f"editor_{selected_year}"
-    )
+    if not df_payments.empty:
+        edited_df = st.data_editor(
+            df_payments,
+            column_config={
+                "player_id": None, # Oculta a coluna de ID
+                **{mes: st.column_config.CheckboxColumn(f"{mes}", default=False) for mes in meses}
+            },
+            disabled=["Jogador"], use_container_width=True, hide_index=True, key=f"editor_{selected_year}"
+        )
 
-    if not edited_df.equals(df_payments):
-        for index, row in edited_df.iterrows():
-            player_name = row['Jogador']
-            player_id = next((p['id'] for p in jogadores if p['name'] == player_name), None)
-            if player_id:
+        # Atualiza o session_state com base nas edições
+        if not edited_df.equals(df_payments):
+            for index, row in edited_df.iterrows():
+                player_id_str = str(row['player_id'])
+                
+                if selected_year_str not in st.session_state.dados['monthly_payments']:
+                    st.session_state.dados['monthly_payments'][selected_year_str] = {}
+                if player_id_str not in st.session_state.dados['monthly_payments'][selected_year_str]:
+                    st.session_state.dados['monthly_payments'][selected_year_str][player_id_str] = {}
+                
                 for i, mes in enumerate(meses, 1):
                     new_status = "Paga" if row[mes] else "Atrasada"
-                    st.session_state.dados['monthly_payments'][selected_year_str][player_id][str(i)] = new_status
-        st.toast("Alterações registradas. Não esqueça de salvar!")
+                    st.session_state.dados['monthly_payments'][selected_year_str][player_id_str][str(i)] = new_status
+            st.toast("Alterações registradas na lista. Não esqueça de salvar na nuvem!")
