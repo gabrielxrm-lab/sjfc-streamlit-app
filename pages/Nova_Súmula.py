@@ -79,8 +79,11 @@ with col_home:
             camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="h_g_c", label_visibility="collapsed")
             qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="h_g_q", label_visibility="collapsed")
             if st.form_submit_button("➕ Adicionar Gol"):
-                chave = (nome_gol, int(camisa_gol))
-                sd.setdefault('goals_home', {})[chave] = sd['goals_home'].get(chave, 0) + qtd_gol
+                if nome_gol and camisa_gol > 0:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    chave = (nome_gol, int(camisa_gol))
+                    sd.setdefault('goals_home', {}) # Garante que o dicionário de gols exista
+                    sd['goals_home'][chave] = sd['goals_home'].get(chave, 0) + qtd_gol
         
         st.write("**Gols Registrados:**")
         for (nome, camisa), qtd in list(sd.get('goals_home', {}).items()):
@@ -96,9 +99,13 @@ with col_home:
             nome_cartao = st.text_input("Jogador", key="h_c_n", label_visibility="collapsed", placeholder="Nome do Jogador")
             c1, c2 = st.columns(2)
             if c1.form_submit_button("🟨 Amarelo", use_container_width=True):
-                if nome_cartao: sd.setdefault('yellow_cards_home', []).append(nome_cartao)
+                if nome_cartao:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    sd.setdefault('yellow_cards_home', []).append(nome_cartao)
             if c2.form_submit_button("🟥 Vermelho", use_container_width=True):
-                if nome_cartao: sd.setdefault('red_cards_home', []).append(nome_cartao)
+                if nome_cartao:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    sd.setdefault('red_cards_home', []).append(nome_cartao)
         
         st.write("**Cartões Registrados:**")
         for i, nome in enumerate(list(sd.get('yellow_cards_home', []))):
@@ -128,8 +135,11 @@ with col_away:
             camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="a_g_c", label_visibility="collapsed")
             qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="a_g_q", label_visibility="collapsed")
             if st.form_submit_button("➕ Adicionar Gol"):
-                chave = (nome_gol, int(camisa_gol))
-                sd.setdefault('goals_away', {})[chave] = sd['goals_away'].get(chave, 0) + qtd_gol
+                if nome_gol and camisa_gol > 0:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    chave = (nome_gol, int(camisa_gol))
+                    sd.setdefault('goals_away', {}) # Garante que o dicionário de gols exista
+                    sd['goals_away'][chave] = sd['goals_away'].get(chave, 0) + qtd_gol
         
         st.write("**Gols Registrados:**")
         for (nome, camisa), qtd in list(sd.get('goals_away', {}).items()):
@@ -145,9 +155,13 @@ with col_away:
             nome_cartao = st.text_input("Jogador", key="a_c_n", label_visibility="collapsed", placeholder="Nome do Jogador")
             c1, c2 = st.columns(2)
             if c1.form_submit_button("🟨 Amarelo", use_container_width=True):
-                if nome_cartao: sd.setdefault('yellow_cards_away', []).append(nome_cartao)
+                if nome_cartao:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    sd.setdefault('yellow_cards_away', []).append(nome_cartao)
             if c2.form_submit_button("🟥 Vermelho", use_container_width=True):
-                if nome_cartao: sd.setdefault('red_cards_away', []).append(nome_cartao)
+                if nome_cartao:
+                    # LÓGICA DE ADIÇÃO CORRIGIDA
+                    sd.setdefault('red_cards_away', []).append(nome_cartao)
         
         st.write("**Cartões Registrados:**")
         for i, nome in enumerate(list(sd.get('yellow_cards_away', []))):
