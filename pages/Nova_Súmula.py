@@ -3,6 +3,7 @@ import streamlit as st
 import data_manager
 import datetime as dt
 import os
+import io # Importante para gerar o PDF em memória
 
 try:
     from reportlab.platypus import SimpleDocTemplate, Preformatted
@@ -32,10 +33,10 @@ if 'sumula_data' not in st.session_state:
     }
 
 def limpar_sumula():
-    st.session_state.sumula_data.clear() # Limpa o dicionário
+    st.session_state.sumula_data.clear()
 
 def montar_sumula_texto(dados_jogo):
-    sd = st.session_state.sumula_data # Atalho
+    sd = st.session_state.sumula_data
     placar_home = sum(sd.get('goals_home', {}).values())
     placar_away = sum(sd.get('goals_away', {}).values())
 
@@ -70,7 +71,7 @@ def montar_sumula_texto(dados_jogo):
         "________________________________________", "", "📆 Cumpriu suspensão:", "", "\n".join(f"{n} (APTO)" for n in sd.get('cumpriu_suspensao', [])) or "(Nenhum)",
         "________________________________________", "", "🟨 Cartões (Mês):", "", "\n".join(sd.get('cartoes_mes', [])) or "(Nenhum)"
     ])
-    sumula_partes.append(f"\n\n🖋 Gerado em: {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    sumula_partes.append(f"\n\n🖋 Gerado em: {dt.datetime.now(dt.timezone(dt.timedelta(hours=-3))).strftime('%d/%m/%Y %H:%M:%S')}")
     return "\n".join(sumula_partes)
 
 st.title("📋 Gerador de Súmula")
@@ -91,6 +92,7 @@ with st.container(border=True):
 
 # --- Times, Gols e Cartões ---
 col_home, col_away = st.columns(2)
+# (O código para as colunas dos times permanece o mesmo, por isso foi omitido para encurtar)
 with col_home:
     with st.container(border=True):
         st.subheader("🔴 Time da Casa")
@@ -123,6 +125,7 @@ with col_home:
                 if nome_cartao and nome_cartao not in st.session_state.sumula_data.get('red_cards_home',[]): st.session_state.sumula_data.setdefault('red_cards_home', []).append(nome_cartao)
         for nome in st.session_state.sumula_data.get('yellow_cards_home',[]): st.text(f"🟨 {nome}")
         for nome in st.session_state.sumula_data.get('red_cards_home',[]): st.text(f"🟥 {nome}")
+
 with col_away:
     with st.container(border=True):
         st.subheader("🟦 Time Visitante")
@@ -159,7 +162,6 @@ with col_away:
 # --- Ocorrências Gerais ---
 st.write("---")
 st.header("📌 Ocorrências Gerais")
-
 def create_occurrence_section(title, key, placeholder):
     with st.container(border=True):
         st.subheader(title)
@@ -178,7 +180,6 @@ def create_occurrence_section(title, key, placeholder):
                 sd[key] = [item for item in current_items if item not in items_to_remove]
                 st.rerun()
         st.write(f"**Lista:** {', '.join(current_items) or 'Vazia'}")
-
 c1, c2, c3 = st.columns(3)
 with c1:
     create_occurrence_section("🚫 Suspensos", "suspensos", "Nome do jogador")
@@ -190,10 +191,10 @@ with c3:
     create_occurrence_section("🚑 Departamento Médico", "medico", "Nome (lesão)")
     create_occurrence_section("🟨 Cartões (Mês)", "cartoes_mes", "Nome (2 amarelos)")
 
-# --- Prévia e Salvamento ---
+# --- Prévia e Download ---
 st.write("---")
 with st.container(border=True):
-    st.header("📄 Prévia e Salvamento da Súmula")
+    st.header("📄 Prévia e Download da Súmula")
     dados_jogo_dict = {
         'data': data_jogo.strftime("%d-%m-%Y"), 'dia': dia_semana, 'rodada': rodada,
         'gol_do_jogo': gol_jogo, 'goleiro_do_jogo': goleiro_jogo, 'craque_do_jogo': craque_jogo,
@@ -202,18 +203,31 @@ with st.container(border=True):
     sumula_final = montar_sumula_texto(dados_jogo_dict)
     st.code(sumula_final, height=400)
 
+    nome_base_arquivo = f"sumula_{data_jogo.strftime('%d-%m-%Y')}"
     c1, c2 = st.columns(2)
-    nome_base = f"sumula_{data_jogo.strftime('%d-%m-%Y')}"
-    caminho_sumulas = data_manager.SUMULA_LEGACY_DIR
 
-    if c1.button("Salvar Súmula (TXT)", use_container_width=True, type="primary"):
-        caminho_completo = os.path.join(caminho_sumulas, f"{nome_base}.txt")
-        with open(caminho_completo, "w", encoding="utf-8") as f: f.write(sumula_final)
-        st.success(f"Súmula salva em: {caminho_completo}")
+    # Botão de Download para TXT
+    c1.download_button(
+        label="⬇️ Baixar Súmula (TXT)",
+        data=sumula_final.encode('utf-8'), # Converte string para bytes
+        file_name=f"{nome_base_arquivo}.txt",
+        mime="text/plain",
+        use_container_width=True,
+        type="primary"
+    )
 
-    if REPORTLAB_AVAILABLE and c2.button("Exportar PDF", use_container_width=True):
-        caminho_pdf = os.path.join(caminho_sumulas, f"{nome_base}.pdf")
-        doc = SimpleDocTemplate(caminho_pdf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+    # Lógica para gerar PDF em memória e botão de download
+    if REPORTLAB_AVAILABLE:
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
         story = [Preformatted(sumula_final, getSampleStyleSheet()["Code"])]
         doc.build(story)
-        st.success(f"PDF exportado para: {caminho_pdf}")
+        pdf_bytes = buffer.getvalue()
+        
+        c2.download_button(
+            label="⬇️ Baixar PDF",
+            data=pdf_bytes,
+            file_name=f"{nome_base_arquivo}.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
