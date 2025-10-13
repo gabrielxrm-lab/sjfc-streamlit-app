@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import data_manager
 import os
-import shutil
 from datetime import datetime
 
 st.set_page_config(layout="wide", page_title="Gerenciar Jogadores")
@@ -13,7 +12,7 @@ st.title("Gerenciamento de Jogadores")
 
 # --- Formulário para Adicionar/Editar Jogador ---
 with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=False):
-    jogadores_nomes = ["Novo Jogador"] + [p['name'] for p in st.session_state.dados['players']]
+    jogadores_nomes = ["Novo Jogador"] + sorted([p['name'] for p in st.session_state.dados['players']])
     selected_player_name = st.selectbox("Selecione um jogador para editar ou escolha 'Novo Jogador' para cadastrar", jogadores_nomes)
 
     player_to_edit = None
@@ -27,7 +26,6 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
         dob = st.text_input("Data Nasc. (DD/MM/AAAA)", value=player_to_edit.get('date_of_birth', '') if player_to_edit else "")
         phone = st.text_input("Telefone", value=player_to_edit.get('phone', '') if player_to_edit else "")
 
-        # Upload de Foto
         uploaded_photo = st.file_uploader("Foto do Jogador (.png, .jpg)", type=['png', 'jpg', 'jpeg'])
         current_photo = player_to_edit.get('photo_file', '') if player_to_edit else ''
         if current_photo:
@@ -41,27 +39,27 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
             else:
                 photo_filename = current_photo
                 if uploaded_photo is not None:
-                    # Salva a nova foto
                     photo_filename = uploaded_photo.name
                     dest_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, photo_filename)
                     with open(dest_path, "wb") as f:
                         f.write(uploaded_photo.getbuffer())
 
-                if player_to_edit: # Atualiza
+                if player_to_edit:
                     player_to_edit.update({
                         'name': name.upper(), 'position': position, 'date_of_birth': dob,
                         'phone': phone, 'photo_file': photo_filename
                     })
-                    st.success(f"Jogador '{name}' atualizado com sucesso!")
-                else: # Adiciona novo
+                    st.success(f"Jogador '{name}' atualizado!")
+                else:
                     new_player = {
                         "id": data_manager.generate_new_player_id(), "name": name.upper(), "position": position,
                         "date_of_birth": dob, "phone": phone, "photo_file": photo_filename,
                         "team_start_date": datetime.now().strftime('%d/%m/%Y')
                     }
                     st.session_state.dados['players'].append(new_player)
-                    st.success(f"Jogador '{name}' cadastrado com sucesso!")
-                st.info("Lembre-se de clicar em 'Salvar Todas as Alterações' na barra lateral.")
+                    st.success(f"Jogador '{name}' cadastrado!")
+                
+                st.info("Lembre-se de salvar as alterações na barra lateral.")
                 st.rerun()
 
 # --- Lista de Jogadores ---
@@ -69,10 +67,9 @@ st.header("Elenco Atual")
 df_players = data_manager.get_players_df()
 
 if not df_players.empty:
-    # Filtros
     col1, col2 = st.columns(2)
     filter_name = col1.text_input("Filtrar por nome")
-    filter_pos = col2.selectbox("Filtrar por posição", ["Todos"] + df_players['position'].unique().tolist())
+    filter_pos = col2.selectbox("Filtrar por posição", ["Todos"] + sorted(df_players['position'].unique().tolist()))
 
     filtered_df = df_players
     if filter_name:
@@ -81,31 +78,28 @@ if not df_players.empty:
         filtered_df = filtered_df[filtered_df['position'] == filter_pos]
 
     st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-
-    # --- Ficha do Jogador ---
+    
     st.write("---")
     st.header("🔎 Ficha Detalhada do Jogador")
-    player_to_view = st.selectbox("Selecione um jogador para ver os detalhes", filtered_df['name'].tolist())
-
-    if player_to_view:
-        player_data = filtered_df[filtered_df['name'] == player_to_view].iloc[0].to_dict()
-        col1, col2 = st.columns([1, 2])
-
-        with col1:
-            photo_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, player_data.get('photo_file', ''))
-            if os.path.exists(photo_path):
-                st.image(photo_path, caption=player_data['name'], width=200)
-            else:
-                st.caption("[Sem Foto]")
-
-        with col2:
-            st.subheader(player_data['name'])
-            st.write(f"**Posição:** {player_data.get('position', 'N/A')}")
-            st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
-            st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
-            st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+    if not filtered_df.empty:
+        player_to_view = st.selectbox("Selecione um jogador para ver os detalhes", filtered_df['name'].tolist())
+        if player_to_view:
+            player_data = filtered_df[filtered_df['name'] == player_to_view].iloc[0].to_dict()
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                photo_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, player_data.get('photo_file', ''))
+                if os.path.exists(photo_path):
+                    st.image(photo_path, caption=player_data['name'], width=200)
+                else:
+                    st.caption("[Sem Foto]")
+            with col2:
+                st.subheader(player_data['name'])
+                st.write(f"**Posição:** {player_data.get('position', 'N/A')}")
+                st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
+                st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
+                st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+    
     st.write("---")
-    # --- Excluir Jogadores ---
     st.header("🗑️ Excluir Jogadores")
     players_to_delete = st.multiselect("Selecione os jogadores para excluir", df_players['name'].tolist())
     if st.button("Excluir Selecionados", type="secondary"):
