@@ -14,58 +14,47 @@ if 'team_milan' not in st.session_state:
     st.session_state.team_milan = []
     st.session_state.team_inter = []
 
-
 def perform_draw():
+    # Garante que os times estejam limpos antes do sorteio
+    st.session_state.team_milan = []
+    st.session_state.team_inter = []
+    
     available_players_by_position = defaultdict(list)
     for player in st.session_state.dados['players']:
         available_players_by_position[player.get('position', 'DESCONHECIDO').upper()].append(player)
 
-    for position_list in available_players_by_position.values():
-        random.shuffle(position_list)
-
-    team_milan = []
-    team_inter = []
-
-    for pos, players_in_pos in available_players_by_position.items():
-        mid_point = len(players_in_pos) // 2
-        for i, player in enumerate(players_in_pos):
-            # Lógica simples de divisão
-            if len(team_milan) <= len(team_inter):
-                team_milan.append(player)
+    # Sorteia por posição para equilibrar
+    for position, players in available_players_by_position.items():
+        random.shuffle(players)
+        for i, player in enumerate(players):
+            if i % 2 == 0:
+                st.session_state.team_milan.append(player)
             else:
-                team_inter.append(player)
-
-    st.session_state.team_milan = sorted(team_milan, key=lambda p: p['name'])
-    st.session_state.team_inter = sorted(team_inter, key=lambda p: p['name'])
+                st.session_state.team_inter.append(player)
 
 def clear_draw():
     st.session_state.team_milan = []
     st.session_state.team_inter = []
 
-# --- Controles ---
-c1, c2, c3 = st.columns([2, 2, 8])
+c1, c2, _ = st.columns([2, 2, 8])
 c1.button("⚡ Sortear Times!", on_click=perform_draw, type="primary", use_container_width=True)
 c2.button("🧹 Limpar Sorteio", on_click=clear_draw, use_container_width=True)
 
 st.write("---")
 
-# --- Exibição dos Times ---
 col_milan, col_inter = st.columns(2)
-
 with col_milan:
-    st.header("🔴 Milan")
+    st.header(f"🔴 Milan ({len(st.session_state.team_milan)})")
     if st.session_state.team_milan:
-        df_milan = pd.DataFrame(st.session_state.team_milan)[['name', 'position']]
+        df_milan = pd.DataFrame(sorted(st.session_state.team_milan, key=lambda p: p['name']))[['name', 'position']]
         st.dataframe(df_milan, hide_index=True, use_container_width=True)
-        st.subheader(f"Total: {len(st.session_state.team_milan)} jogadores")
     else:
         st.info("Time vazio.")
 
 with col_inter:
-    st.header("🔵 Inter de Milão")
+    st.header(f"🔵 Inter ({len(st.session_state.team_inter)})")
     if st.session_state.team_inter:
-        df_inter = pd.DataFrame(st.session_state.team_inter)[['name', 'position']]
+        df_inter = pd.DataFrame(sorted(st.session_state.team_inter, key=lambda p: p['name']))[['name', 'position']]
         st.dataframe(df_inter, hide_index=True, use_container_width=True)
-        st.subheader(f"Total: {len(st.session_state.team_inter)} jogadores")
     else:
         st.info("Time vazio.")
