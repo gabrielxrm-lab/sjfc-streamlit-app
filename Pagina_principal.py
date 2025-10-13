@@ -61,7 +61,7 @@ with st.sidebar:
     
     # --- SEÇÃO DE CONTATO ADICIONADA AQUI ---
     st.write("---")
-    st.caption("Desenvolvido por:Gabir")
+    st.caption("Desenvolvido por:")
     st.markdown("**Gabriel Conrado**") # Edite com seu nome
     st.caption("📱 (21) 9 7275-7256") # Edite com seu telefone
 
@@ -105,4 +105,5 @@ components.html(countdown_html, height=150)
 
 st.write("---")
 st.info("Use o menu na barra lateral para navegar. Para editar, selecione o perfil 'Diretoria' e insira a senha.")
+
 
