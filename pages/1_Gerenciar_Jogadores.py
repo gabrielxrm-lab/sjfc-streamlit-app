@@ -8,7 +8,16 @@ from datetime import datetime
 st.set_page_config(layout="wide", page_title="Gerenciar Jogadores")
 data_manager.initialize_session_state()
 
-st.title("Gerenciamento de Jogadores")
+# --- Título e Botão Salvar ---
+c1, c2 = st.columns([3, 1])
+with c1:
+    st.title("Gerenciamento de Jogadores")
+with c2:
+    if st.button("💾 Salvar Alterações na Nuvem", use_container_width=True, type="primary"):
+        data_manager.save_data_to_db()
+
+st.info("Adicione, edite ou remova jogadores da lista local. Quando terminar, clique no botão 'Salvar' acima.")
+
 
 # --- Formulário para Adicionar/Editar Jogador ---
 with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=False):
@@ -44,11 +53,10 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
                     st.success(f"Jogador '{name}' atualizado na lista local.")
                 else: # Adiciona novo jogador ao session_state
                     player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y')
-                    # ID será gerado pelo Supabase, então não adicionamos aqui
                     st.session_state.dados['players'].append(player_data)
                     st.success(f"Jogador '{name}' adicionado à lista local.")
                 
-                st.info("Clique em 'Salvar Alterações na Nuvem' na barra lateral para persistir os dados.")
+                st.info("Clique no botão 'Salvar Alterações na Nuvem' no topo da página para persistir os dados.")
                 st.rerun()
 
 # --- Lista de Jogadores ---
