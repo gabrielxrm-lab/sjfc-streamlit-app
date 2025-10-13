@@ -32,7 +32,6 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
         dob = st.text_input("Data Nasc. (DD/MM/AAAA)", value=player_to_edit.get('date_of_birth', '') if player_to_edit else "")
         phone = st.text_input("Telefone", value=player_to_edit.get('phone', '') if player_to_edit else "")
         
-        # --- CAMPO DE UPLOAD DE FOTO REINTEGRADO ---
         uploaded_photo = st.file_uploader("Foto do Jogador (.png, .jpg)", type=['png', 'jpg', 'jpeg'])
         current_photo = player_to_edit.get('photo_file', '') if player_to_edit else ''
         if current_photo:
@@ -42,17 +41,13 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
         if submitted:
             if not name or not position: st.error("Nome e Posição são obrigatórios.")
             else:
-                # --- LÓGICA PARA SALVAR A FOTO ---
                 photo_filename = current_photo
                 if uploaded_photo is not None:
-                    # Se uma nova foto foi enviada, salva ela na pasta
                     photo_filename = uploaded_photo.name
                     dest_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, photo_filename)
-                    with open(dest_path, "wb") as f:
-                        f.write(uploaded_photo.getbuffer())
+                    with open(dest_path, "wb") as f: f.write(uploaded_photo.getbuffer())
                     st.toast(f"Foto '{photo_filename}' salva localmente.")
                 
-                # Prepara os dados do jogador com o nome do arquivo da foto
                 player_data = {
                     'name': name.upper(), 'position': position, 'date_of_birth': dob, 
                     'phone': phone, 'photo_file': photo_filename
@@ -75,6 +70,47 @@ df_players = data_manager.get_players_df()
 
 if not df_players.empty:
     st.dataframe(df_players.drop(columns=['created_at'], errors='ignore'), use_container_width=True, hide_index=True)
+    
+    # --- FICHA DETALHADA DO JOGADOR (CARD) ---
+    st.write("---")
+    st.header("🔎 Ficha Detalhada do Jogador")
+    
+    # Filtros para o selectbox
+    col1, col2 = st.columns(2)
+    filter_name_card = col1.text_input("Buscar jogador na ficha")
+    
+    filtered_df_card = df_players
+    if filter_name_card:
+        filtered_df_card = filtered_df_card[filtered_df_card['name'].str.contains(filter_name_card, case=False)]
+
+    if not filtered_df_card.empty:
+        player_to_view_name = st.selectbox(
+            "Selecione um jogador para ver os detalhes", 
+            options=filtered_df_card['name'].tolist()
+        )
+
+        if player_to_view_name:
+            # Pega todos os dados do jogador selecionado
+            player_data = filtered_df_card[filtered_df_card['name'] == player_to_view_name].iloc[0].to_dict()
+            
+            # Layout do Card
+            col_img, col_data = st.columns([1, 2])
+            
+            with col_img:
+                photo_path = os.path.join(data_manager.PLAYER_PHOTOS_DIR, player_data.get('photo_file', ''))
+                if os.path.exists(photo_path):
+                    st.image(photo_path, caption=player_data['name'], width=200)
+                else:
+                    st.caption("[Sem Foto]")
+            
+            with col_data:
+                st.subheader(player_data['name'])
+                st.write(f"**Posição:** {player_data.get('position', 'N/A')}")
+                st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
+                st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
+                st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+    else:
+        st.info("Nenhum jogador encontrado com o filtro aplicado.")
     
     # --- Seção de Exclusão ---
     st.write("---")
