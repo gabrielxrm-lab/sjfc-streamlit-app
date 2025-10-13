@@ -9,10 +9,19 @@ data_manager.initialize_session_state()
 
 st.title("Controle de Mensalidades")
 
-current_year = datetime.now().year
-selected_year = st.selectbox("Selecione o Ano", range(current_year - 2, current_year + 5), index=2)
-selected_year_str = str(selected_year)
+# --- Seletor de Ano e Botão Salvar ---
+c1, c2 = st.columns([1, 3])
+with c1:
+    current_year = datetime.now().year
+    selected_year = st.selectbox("Selecione o Ano", range(current_year - 2, current_year + 5), index=2)
+    selected_year_str = str(selected_year)
+with c2:
+    st.write("") # Apenas para alinhamento vertical
+    st.write("")
+    if st.button("💾 Salvar Alterações na Nuvem", use_container_width=True, type="primary"):
+        data_manager.save_data_to_db()
 
+# --- Tabela de Mensalidades ---
 jogadores = st.session_state.dados.get('players', [])
 if not jogadores:
     st.warning("Nenhum jogador cadastrado.")
@@ -35,7 +44,7 @@ else:
 
     df_payments = pd.DataFrame(payment_data)
 
-    st.info("Clique nas caixas para alterar o status (marcado = Paga). Salve na barra lateral.")
+    st.info("Clique nas caixas para alterar o status (marcado = Paga). Depois clique em 'Salvar' acima.")
 
     if not df_payments.empty:
         edited_df = st.data_editor(
