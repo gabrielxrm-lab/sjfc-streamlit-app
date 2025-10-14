@@ -17,7 +17,7 @@ with c2:
     if st.button("💾 Salvar Alterações na Nuvem", width='stretch', type="primary"):
         data_manager.save_data_to_db()
 
-st.info("Adicione, edite ou remova jogadores. Lembre-se de salvar as alterações na nuvem.")
+st.info("Adicione, edite ou remova jogadores. Quando terminar, clique no botão 'Salvar' acima.")
 
 # --- Formulário para Adicionar/Editar Jogador ---
 with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=False):
@@ -56,9 +56,7 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
                     player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y')
                     st.session_state.dados['players'].append(player_data)
                     st.success(f"Novo jogador '{name}' adicionado. Salvando no banco de dados...")
-                    # Força o salvamento imediato para obter o ID
                     data_manager.save_data_to_db()
-                    # O save_data_to_db já faz o rerun, então não é necessário aqui.
 
 # --- Lista de Jogadores e Ficha ---
 st.header("Elenco Atual")
