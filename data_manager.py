@@ -4,10 +4,12 @@ import os
 import pandas as pd
 from datetime import datetime
 from supabase import create_client, Client
+import io
 
 # --- Configurações ---
 PLAYER_PHOTOS_DIR = 'player_photos'
 SUMULA_LEGACY_DIR = 'sumulas'
+SUPABASE_BUCKET_NAME = "arquivos_sjfc"
 
 # --- Conexão com Supabase ---
 @st.cache_resource
@@ -16,12 +18,47 @@ def init_supabase_client():
         url = st.secrets["supabase"]["url"]
         key = st.secrets["supabase"]["key"]
         return create_client(url, key)
-    except Exception as e:
+    except Exception:
         st.error("Falha na conexão com o Supabase. Verifique suas chaves em 'Secrets'.")
         return None
 
 supabase: Client = init_supabase_client()
 
+# --- NOVAS FUNÇÕES DE STORAGE ---
+
+def upload_file_to_storage(file_bytes, destination_path):
+    """Faz o upload de um arquivo em bytes para o Supabase Storage."""
+    if not supabase:
+        st.error("Não foi possível fazer o upload: cliente Supabase não conectado.")
+        return None
+    try:
+        # A biblioteca do supabase espera um arquivo, então usamos BytesIO
+        file_like_object = io.BytesIO(file_bytes)
+        
+        response = supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
+            path=destination_path,
+            file=file_like_object,
+            file_options={"cache-control": "3600", "upsert": "true"} # upsert=true sobrescreve se já existir
+        )
+        
+        # Após o upload, obtemos a URL pública
+        return get_public_url(destination_path)
+    except Exception as e:
+        st.error(f"Erro no upload do arquivo: {e}")
+        return None
+
+def get_public_url(path):
+    """Obtém a URL pública de um arquivo no Storage."""
+    if not supabase:
+        return None
+    try:
+        response = supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(path)
+        return response
+    except Exception as e:
+        st.error(f"Erro ao obter URL pública: {e}")
+        return None
+
+# --- Funções de Dados ---
 def initialize_session_state():
     if 'dados' not in st.session_state:
         st.session_state['dados'] = load_data_from_db()
@@ -40,7 +77,6 @@ def load_data_from_db():
         payments_response = supabase.table('monthly_payments').select('*').execute()
         payments_data = payments_response.data
         
-        # Carrega as estatísticas dos jogos
         stats_response = supabase.table('game_stats').select('*').execute()
         stats_data = stats_response.data
 
@@ -59,7 +95,6 @@ def load_data_from_db():
         return {'players': [], 'monthly_payments': {}, 'game_stats': []}
 
 def save_data_to_db():
-    # ... (esta função permanece a mesma de antes, não precisa ser alterada)
     if not supabase or 'dados' not in st.session_state: st.error("Cliente Supabase não inicializado."); return
     try:
         players_to_save = st.session_state.dados.get('players', [])
@@ -87,30 +122,21 @@ def save_data_to_db():
 
 
 def save_game_stats_to_db(stats_list):
-    """Salva uma lista de estatísticas de jogo no Supabase."""
-    if not supabase or not stats_list:
-        return
+    if not supabase or not stats_list: return
     try:
-        supabase.table('game_stats').insert(stats_list).execute()
-        st.success("📊 Estatísticas da partida salvas com sucesso!")
-        # Atualiza os dados na sessão para refletir no ranking
+        supabase.table('game_stats').insert(stats_list).execute(); st.success("📊 Estatísticas da partida salvas com sucesso!")
         st.session_state['dados']['game_stats'].extend(stats_list)
-    except Exception as e:
-        st.error(f"Erro ao salvar estatísticas da partida: {e}")
-
+    except Exception as e: st.error(f"Erro ao salvar estatísticas da partida: {e}")
 
 def delete_players_by_ids(ids_to_delete):
-    # ... (esta função permanece a mesma de antes)
     if not supabase or not ids_to_delete: return
     try:
-        supabase.table('Players').delete().in_('id', ids_to_delete).execute()
-        st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
+        supabase.table('Players').delete().in_('id', ids_to_delete).execute(); st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
     except Exception as e: st.error(f"Erro ao deletar jogadores: {e}")
 
 # --- Funções Auxiliares ---
 def get_players_df():
-    players = st.session_state.dados.get('players', [])
-    return pd.DataFrame(players) if players else pd.DataFrame()
+    players = st.session_state.dados.get('players', []); return pd.DataFrame(players) if players else pd.DataFrame()
 
 def get_player_name_by_id(player_id):
     player_id = int(player_id)
