@@ -17,7 +17,7 @@ with c2:
     if st.button("💾 Salvar Alterações na Nuvem", use_container_width=True, type="primary"):
         data_manager.save_data_to_db()
 
-st.info("Adicione, edite ou remova jogadores. Lembre-se de salvar as alterações na nuvem.")
+st.info("Adicione, edite ou remova jogadores. Quando terminar, clique no botão 'Salvar' acima.")
 
 # --- Formulário para Adicionar/Editar Jogador ---
 with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=False):
@@ -77,17 +77,24 @@ if not df_players.empty:
                 else: st.image("https://via.placeholder.com/200x200.png?text=Sem+Foto", width=200)
             with col_data:
                 st.subheader(player_data['name']); st.write(f"**Posição:** {player_data.get('position', 'N/A')}"); st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}"); st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}"); st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+
+    # --- Seção de Exclusão (Lógica Corrigida) ---
     st.write("---"); st.header("🗑️ Excluir Jogadores"); players_to_delete_names = st.multiselect("Selecione os jogadores para excluir da lista", df_players['name'].tolist())
     if st.button("Remover Selecionados da Lista", type="secondary"):
         if players_to_delete_names:
-            # Garante que 'id' existe no dataframe antes de tentar acessá-lo
-            if 'id' in df_players.columns:
-                ids_to_delete = df_players[df_players['name'].isin(players_to_delete_names)]['id'].tolist()
-                data_manager.delete_players_by_ids(ids_to_delete)
-                st.session_state.dados['players'] = [p for p in st.session_state.dados['players'] if 'id' in p and p['id'] not in ids_to_delete]
-                st.warning(f"{len(players_to_delete_names)} jogadores foram removidos."); 
-                st.rerun()
+            # Filtra a lista de jogadores em memória para garantir que todos tenham 'id'
+            players_with_ids = [p for p in st.session_state.dados.get('players', []) if 'id' in p]
+            if not players_with_ids:
+                st.error("Nenhum jogador com ID encontrado. Salve as alterações e recarregue a página.")
             else:
-                st.error("Erro: a coluna 'id' não foi encontrada. Tente salvar as alterações e recarregar a página.")
+                df_clean = pd.DataFrame(players_with_ids)
+                ids_to_delete = df_clean[df_clean['name'].isin(players_to_delete_names)]['id'].tolist()
+                if ids_to_delete:
+                    data_manager.delete_players_by_ids(ids_to_delete)
+                    st.session_state.dados['players'] = [p for p in players_with_ids if p.get('id') not in ids_to_delete]
+                    st.warning(f"{len(players_to_delete_names)} jogadores foram removidos.")
+                    st.rerun()
+                else:
+                    st.warning("Jogadores selecionados não puderam ser encontrados para exclusão (podem ser novos e ainda não salvos).")
 else:
     st.info("Nenhum jogador cadastrado.")
