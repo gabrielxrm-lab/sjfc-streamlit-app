@@ -24,7 +24,7 @@ def init_supabase_client():
 
 supabase: Client = init_supabase_client()
 
-# --- FUNÇÕES DE STORAGE ---
+# --- FUNÇÕES DE STORAGE (A DEFINIÇÃO QUE ESTÁ FALTANDO) ---
 def upload_file_to_storage(file_bytes, destination_path):
     if not supabase: st.error("Não foi possível fazer o upload: cliente Supabase não conectado."); return None
     try:
@@ -43,10 +43,11 @@ def get_public_url(path):
         return supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(path)
     except Exception as e: st.error(f"Erro ao obter URL pública: {e}"); return None
 
-# --- O resto do arquivo (sem alterações) ---
+# --- Funções de Dados ---
 def initialize_session_state():
     if 'dados' not in st.session_state: st.session_state['dados'] = load_data_from_db()
     os.makedirs(PLAYER_PHOTOS_DIR, exist_ok=True); os.makedirs(SUMULA_LEGACY_DIR, exist_ok=True)
+
 def load_data_from_db():
     if not supabase: return {'players': [], 'monthly_payments': {}, 'game_stats': []}
     try:
@@ -63,6 +64,7 @@ def load_data_from_db():
         return {'players': players_data, 'monthly_payments': monthly_payments_structured, 'game_stats': stats_data}
     except Exception as e:
         st.error(f"Erro ao carregar dados do Supabase: {e}"); return {'players': [], 'monthly_payments': {}, 'game_stats': []}
+
 def save_data_to_db():
     if not supabase or 'dados' not in st.session_state: st.error("Cliente Supabase não inicializado."); return
     try:
@@ -85,19 +87,23 @@ def save_data_to_db():
         st.success("✅ Dados de jogadores e mensalidades salvos na nuvem!")
         st.session_state['dados'] = load_data_from_db(); st.rerun()
     except Exception as e: st.error(f"Erro ao salvar dados no Supabase: {e}")
+
 def save_game_stats_to_db(stats_list):
     if not supabase or not stats_list: return
     try:
         supabase.table('game_stats').insert(stats_list).execute(); st.success("📊 Estatísticas da partida salvas com sucesso!")
         st.session_state['dados']['game_stats'].extend(stats_list)
     except Exception as e: st.error(f"Erro ao salvar estatísticas da partida: {e}")
+
 def delete_players_by_ids(ids_to_delete):
     if not supabase or not ids_to_delete: return
     try:
         supabase.table('Players').delete().in_('id', ids_to_delete).execute(); st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
     except Exception as e: st.error(f"Erro ao deletar jogadores: {e}")
+
 def get_players_df():
     players = st.session_state.dados.get('players', []); return pd.DataFrame(players) if players else pd.DataFrame()
+
 def get_player_name_by_id(player_id):
     player_id = int(player_id)
     for player in st.session_state.dados.get('players', []):
