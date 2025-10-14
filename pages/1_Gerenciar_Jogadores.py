@@ -34,7 +34,6 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
         
         uploaded_photo = st.file_uploader("Alterar Foto do Jogador (.png, .jpg)", type=['png', 'jpg', 'jpeg'])
         
-        # LÓGICA CORRIGIDA para exibir a foto atual
         current_photo_identifier = player_to_edit.get('photo_file', '') if player_to_edit else ''
         if current_photo_identifier and current_photo_identifier.startswith('http'):
             st.caption("Foto atual:")
@@ -50,74 +49,37 @@ with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente", expanded=Fals
                     file_path_in_bucket = f"fotos_jogadores/{name.replace(' ', '-').lower()}.{uploaded_photo.name.split('.')[-1]}"
                     photo_identifier = data_manager.upload_file_to_storage(file_bytes, file_path_in_bucket)
                 
-                player_data = {
-                    'name': name.upper(), 'position': position, 'date_of_birth': dob, 
-                    'phone': phone, 'photo_file': photo_identifier
-                }
-                
-                if player_to_edit: 
-                    player_to_edit.update(player_data)
-                    st.success(f"Jogador '{name}' atualizado na lista local.")
-                else: 
-                    player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y')
-                    st.session_state.dados['players'].append(player_data)
-                    st.success(f"Jogador '{name}' adicionado à lista local.")
-                
-                st.info("Lembre-se de salvar as alterações na nuvem.")
-                st.rerun()
+                player_data = { 'name': name.upper(), 'position': position, 'date_of_birth': dob, 'phone': phone, 'photo_file': photo_identifier }
+                if player_to_edit: player_to_edit.update(player_data); st.success(f"Jogador '{name}' atualizado na lista local.")
+                else: player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y'); st.session_state.dados['players'].append(player_data); st.success(f"Jogador '{name}' adicionado à lista local.")
+                st.info("Lembre-se de salvar as alterações na nuvem."); st.rerun()
 
-# --- Lista de Jogadores ---
+# --- Lista de Jogadores e Ficha ---
 st.header("Elenco Atual")
 df_players = data_manager.get_players_df()
-
 if not df_players.empty:
     st.dataframe(df_players.drop(columns=['created_at', 'photo_file'], errors='ignore'), use_container_width=True, hide_index=True)
     
-    # --- FICHA DETALHADA DO JOGADOR (CARD) ---
-    st.write("---")
-    st.header("🔎 Ficha Detalhada do Jogador")
-    
-    player_to_view_name = st.selectbox(
-        "Selecione um jogador para ver os detalhes", 
-        options=[""] + df_players['name'].tolist(),
-        index=0,
-        placeholder="Escolha um jogador..."
-    )
-
+    st.write("---"); st.header("🔎 Ficha Detalhada do Jogador")
+    player_to_view_name = st.selectbox("Selecione um jogador para ver os detalhes", options=[""] + df_players['name'].tolist(), index=0, placeholder="Escolha um jogador...")
     if player_to_view_name:
         player_data = df_players[df_players['name'] == player_to_view_name].iloc[0].to_dict()
-        
         with st.container(border=True):
-            col_img, col_data = st.columns([1, 2])
-            
+            col_img, col_data = st.columns([1, 2]);
             with col_img:
-                # --- LÓGICA CORRIGIDA para exibir a imagem ---
+                # --- LÓGICA CORRIGIDA AQUI ---
                 photo_identifier = player_data.get('photo_file', '')
                 if photo_identifier and photo_identifier.startswith('http'):
-                    # Se for uma URL completa, exibe a imagem
-                    st.image(photo_identifier, width=200)
+                    st.image(photo_identifier, width=200) # Se for URL, exibe
                 else:
-                    # Se for um nome de arquivo antigo ou vazio, exibe o placeholder
-                    st.image("https://via.placeholder.com/200x200.png?text=Sem+Foto", width=200)
-            
+                    st.image("https://via.placeholder.com/200x200.png?text=Sem+Foto", width=200) # Se não for, mostra placeholder
             with col_data:
-                st.subheader(player_data['name'])
-                st.write(f"**Posição:** {player_data.get('position', 'N/A')}")
-                st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
-                st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
-                st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+                st.subheader(player_data['name']); st.write(f"**Posição:** {player_data.get('position', 'N/A')}"); st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}"); st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}"); st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
 
     # --- Seção de Exclusão ---
-    st.write("---")
-    st.header("🗑️ Excluir Jogadores")
-    players_to_delete_names = st.multiselect("Selecione os jogadores para excluir da lista", df_players['name'].tolist())
-    
+    st.write("---"); st.header("🗑️ Excluir Jogadores"); players_to_delete_names = st.multiselect("Selecione os jogadores para excluir da lista", df_players['name'].tolist())
     if st.button("Remover Selecionados da Lista", type="secondary"):
         if players_to_delete_names:
-            ids_to_delete = df_players[df_players['name'].isin(players_to_delete_names)]['id'].tolist()
-            data_manager.delete_players_by_ids(ids_to_delete)
-            st.session_state.dados['players'] = [p for p in st.session_state.dados['players'] if p['id'] not in ids_to_delete]
-            st.warning(f"{len(players_to_delete_names)} jogadores foram removidos. Lembre-se de salvar.")
-            st.rerun()
+            ids_to_delete = df_players[df_players['name'].isin(players_to_delete_names)]['id'].tolist(); data_manager.delete_players_by_ids(ids_to_delete); st.session_state.dados['players'] = [p for p in st.session_state.dados['players'] if p['id'] not in ids_to_delete]; st.warning(f"{len(players_to_delete_names)} jogadores foram removidos. Lembre-se de salvar."); st.rerun()
 else:
     st.info("Nenhum jogador cadastrado.")
