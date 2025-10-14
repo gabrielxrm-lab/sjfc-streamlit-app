@@ -82,7 +82,7 @@ with st.sidebar:
     st.write("---")
     st.caption("Desenvolvido por:")
     st.markdown("**Gabriel Conrado**")
-    st.caption("📱 (21) 97140-0676")
+    st.caption("📱 (21) 97275-7256")
 
 # --- Página Principal ---
 st.title("🛡️ Central de Dados do São Jorge FC")
