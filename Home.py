@@ -6,21 +6,44 @@ import streamlit.components.v1 as components
 from datetime import datetime
 import locale
 
+# Configura a localidade para português, com um fallback
 try:
     locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 except locale.Error:
     pass
 
-st.set_page_config(page_title="Central do São Jorge FC", page_icon="logo_sao_jorge.png", layout="wide")
+# --- Configuração da Página ---
+st.set_page_config(
+    page_title="Central do São Jorge FC",
+    page_icon="logo_sao_jorge.png",
+    layout="wide"
+)
 
+# --- CSS para Fixar a Barra Lateral e Centralizar a Página ---
 st.markdown(
-    """<style>
-        section[data-testid="stSidebar"] {width: 300px; position: fixed; height: 100%; top: 0; left: 0;}
-        .main .block-container {display: flex; flex-direction: column; align-items: center; text-align: center;}
-    </style>""",
+    """
+    <style>
+        /* Fixa a barra lateral */
+        section[data-testid="stSidebar"] {
+            width: 300px;
+            position: fixed;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        /* Centraliza o conteúdo da página principal */
+        .main .block-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
 
+# --- Lógica de Perfil e Login ---
 def handle_profile_selection():
     if 'role' not in st.session_state: st.session_state.role = 'Jogador'
     st.sidebar.title("Perfil de Acesso")
@@ -42,13 +65,18 @@ def handle_profile_selection():
 handle_profile_selection()
 data_manager.initialize_session_state()
 
+# --- Barra Lateral (Restante) ---
 with st.sidebar:
     st.write("---"); logo_path = "logo_sao_jorge.png"
     if os.path.exists(logo_path): st.image(logo_path, width=150)
     st.title("São Jorge FC"); st.write("---"); st.caption("Desenvolvido por:")
     st.markdown("**Gabriel Conrado**"); st.caption("📱 (21) 97275-7256")
 
-logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
+
+# --- PÁGINA PRINCIPAL ---
+
+# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
+logo_url = f"https://raw.githubusercontent.com/{data_manager.GITHUB_USER}/{data_manager.GITHUB_REPO}/main/logo_sao_jorge.png"
 st.markdown(f"""
     <div style="text-align: center;">
         <img src="{logo_url}" alt="Logo SJFC" width="80">
@@ -57,37 +85,48 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-if st.session_state.role == 'Diretoria': st.markdown("<h5 style='text-align: center;'>🔑 Você está no modo Diretoria.</h5>", unsafe_allow_html=True)
-else: st.markdown("<h5 style='text-align: center;'>👁️ Você está no modo Jogador.</h5>", unsafe_allow_html=True)
+if st.session_state.role == 'Diretoria':
+    st.markdown("<h5 style='text-align: center;'>🔑 Você está no modo Diretoria.</h5>", unsafe_allow_html=True)
+else:
+    st.markdown("<h5 style='text-align: center;'>👁️ Você está no modo Jogador.</h5>", unsafe_allow_html=True)
 st.write("---")
 
+# --- SEÇÃO: ANIVERSARIANTES DO MÊS ---
 now = datetime.now()
 month_map_pt = {1:"Janeiro", 2:"Fevereiro", 3:"Março", 4:"Abril", 5:"Maio", 6:"Junho", 7:"Julho", 8:"Agosto", 9:"Setembro", 10:"Outubro", 11:"Novembro", 12:"Dezembro"}
 current_month_name = month_map_pt.get(now.month, "")
 st.header(f"🎂 Aniversariantes de {current_month_name}")
+
 players = st.session_state.dados.get('players', [])
-birthday_players = [p for p in players if p.get('date_of_birth') and len(p.get('date_of_birth').split('/')) == 3 and (datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").month == now.month)]
+birthday_players = [p for p in players if p.get('date_of_birth') and len(p.get('date_of_birth').split('/')) == 3]
+birthday_players = [p for p in birthday_players if datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").month == now.month]
 birthday_players.sort(key=lambda p: datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").day)
-if not birthday_players: st.info("Nenhum aniversariante este mês.")
+
+if not birthday_players:
+    st.info("Nenhum aniversariante este mês.")
 else:
-    num_columns = min(len(birthday_players), 4)
+    num_columns = min(len(birthday_players), 4) # Garante que não crie mais colunas que aniversariantes
     cols = st.columns(num_columns)
     for i, player in enumerate(birthday_players):
         with cols[i % num_columns]:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_column_width=True)
+                # --- CORREÇÃO DEFINITIVA PARA A IMAGEM PEQUENA E O AVISO ---
+                st.image(image_url, use_container_width=True)
+                
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
                 st.caption(f"Dia {dob.strftime('%d')}")
                 if player.get('shirt_number'): st.markdown(f"**Camisa: {player.get('shirt_number')}**")
 st.write("---")
 
+# --- CONTADOR REGRESSIVO ---
 st.header("⏳ Próximo Jogo")
 countdown_html = """<style>.countdown-container{font-family:'Consolas','Monaco',monospace;text-align:center;background-color:#262730;padding:20px;border-radius:10px;color:#FAFAFA;font-size:1.5rem}.countdown-time{font-size:2.5rem;font-weight:bold;color:#1E88E5;letter-spacing:5px}.countdown-label{font-size:1rem;text-transform:uppercase}</style><div class="countdown-container"><p class="countdown-label">Contagem regressiva para Domingo, 07:00</p><div id="countdown" class="countdown-time">Calculando...</div></div><script>function startCountdown(){const e=document.getElementById("countdown");if(e){const o=setInterval(()=>{const t=new Date,n=new Date;n.setDate(t.getDate()+(7-t.getDay())%7),n.setHours(7,0,0,0),n<t&&n.setDate(n.getDate()+7);const d=n-t;if(d<0)return e.innerHTML="É DIA DE JOGO!",void clearInterval(o);const a=Math.floor(d/864e5),s=Math.floor(d%864e5/36e5),l=Math.floor(d%36e5/6e4),i=Math.floor(d%6e4/1e3);e.innerHTML=`${a}d ${s.toString().padStart(2,"0")}h ${l.toString().padStart(2,"0")}m ${i.toString().padStart(2,"0")}s`},1e3)}}startCountdown();</script>"""
 components.html(countdown_html, height=150)
 st.write("---")
 
+# --- CARROSSEL DE FOTOS ---
 st.header("🖼️ Galeria do Time")
 image_urls = [
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_075933.jpg",
