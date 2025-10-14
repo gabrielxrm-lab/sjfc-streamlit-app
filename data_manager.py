@@ -72,21 +72,31 @@ def load_data_from_db():
 def save_data_to_db():
     if not supabase or 'dados' not in st.session_state: st.error("Cliente Supabase não inicializado."); return
     try:
-        players_to_save = st.session_state.dados.get('players', [])
-        if players_to_save:
-            # --- LÓGICA CORRIGIDA ---
-            upsert_list = []
-            for player in players_to_save:
-                if not player.get('id'):
-                    new_player = player.copy()
-                    new_player.pop('id', None) 
-                    upsert_list.append(new_player)
-                else:
-                    upsert_list.append(player)
+        players_to_process = st.session_state.dados.get('players', [])
+        
+        # --- LÓGICA DE SALVAMENTO CORRIGIDA E SEPARADA ---
+        if players_to_process:
+            new_players = []
+            existing_players = []
             
-            if upsert_list:
-                supabase.table('Players').upsert(upsert_list).execute()
+            # 1. Separa jogadores novos dos existentes
+            for player in players_to_process:
+                if player.get('id'):
+                    existing_players.append(player)
+                else:
+                    new_player_data = player.copy()
+                    new_player_data.pop('id', None)
+                    new_players.append(new_player_data)
 
+            # 2. Insere os jogadores novos (INSERT)
+            if new_players:
+                supabase.table('Players').insert(new_players).execute()
+            
+            # 3. Atualiza os jogadores existentes (UPDATE/UPSERT)
+            if existing_players:
+                supabase.table('Players').upsert(existing_players).execute()
+
+        # O resto da função continua igual...
         payments_to_insert = []
         reloaded_players = supabase.table('Players').select('id').execute().data
         player_ids_in_app = [p['id'] for p in reloaded_players]
