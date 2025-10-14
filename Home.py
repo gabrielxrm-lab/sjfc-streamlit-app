@@ -108,4 +108,21 @@ st.write("---")
 
 # --- CONTADOR REGRESSIVO ---
 st.header("⏳ Próximo Jogo")
-countdown_html = """<style>.countdown-container{font-family:'Consolas','Monaco',monospace;text-align:center;background-color:#262730;padding:20px;border-radius:10px;color:#FAFAFA;font-size:1.5rem}.countdown-time{font-size:2.5rem;font-weight:bold;color:#1E88E5;letter-spacing:5px}.countdown-label{font-size:1rem;text-transform:uppercase}</style><div class="countdown-container"><p class="countdown-label">Contagem regressiva para Domingo, 07:00</p><div id="countdown" class="countdown-time">Calculando...</div></div><script>function startCountdown(){const e=document.getElementById("countdown");if(e){const o=setInterval(()=>{const t=new Date,n=new Date;n.setDate(t.getDate()+(7-t.getDay())%7),n.setHours(7,0,0,0),n<t&&n.setDate(n.getDate()+7);const d=n-t;if(d<0)return e.innerHTML="É DIA DE JOGO!",void clearInterval(o);const a=Math.floor(d/864e5),s=Math.floor(d%864e5/36e5),l=Math.floor(d%36e5/6e4),i=Math.floor(d%6e4/1e3);e.innerHTML=`${a}d ${s.toString().
+countdown_html = """<style>.countdown-container{font-family:'Consolas','Monaco',monospace;text-align:center;background-color:#262730;padding:20px;border-radius:10px;color:#FAFAFA;font-size:1.5rem}.countdown-time{font-size:2.5rem;font-weight:bold;color:#1E88E5;letter-spacing:5px}.countdown-label{font-size:1rem;text-transform:uppercase}</style><div class="countdown-container"><p class="countdown-label">Contagem regressiva para Domingo, 07:00</p><div id="countdown" class="countdown-time">Calculando...</div></div><script>function startCountdown(){const e=document.getElementById("countdown");if(e){const o=setInterval(()=>{const t=new Date,n=new Date;n.setDate(t.getDate()+(7-t.getDay())%7),n.setHours(7,0,0,0),n<t&&n.setDate(n.getDate()+7);const d=n-t;if(d<0)return e.innerHTML="É DIA DE JOGO!",void clearInterval(o);const a=Math.floor(d/864e5),s=Math.floor(d%864e5/36e5),l=Math.floor(d%36e5/6e4),i=Math.floor(d%6e4/1e3);e.innerHTML=`${a}d ${s.toString().padStart(2,"0")}h ${l.toString().padStart(2,"0")}m ${i.toString().padStart(2,"0")}s`},1e3)}}startCountdown();</script>"""
+components.html(countdown_html, height=150)
+st.write("---")
+
+# --- SEÇÃO DO CARROSSEL DE FOTOS ---
+st.header("🖼️ Galeria do Time")
+image_urls = [
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_075933.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_080001.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085832.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085914.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085945.jpg"
+]
+image_tags = "".join([f'<img class="slide" src="{url}">' for url in image_urls])
+slideshow_html = f"""<style>.slideshow-container{{position:relative;width:100%;height:450px;overflow:hidden;border-radius:10px}}.slide{{position:absolute;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.5s ease-in-out}}.slide.active{{opacity:1}}</style><div class="slideshow-container">{image_tags}</div><script>let slideIndex=0;const slides=document.getElementsByClassName("slide");function showSlides(){{for(let e=0;e<slides.length;e++)slides[e].classList.remove("active");slideIndex++,slideIndex>slides.length&&(slideIndex=1),slides[slideIndex-1].classList.add("active"),setTimeout(showSlides,5e3)}}slides.length>0&&(slides[0].classList.add("active"),setTimeout(showSlides,5e3));</script>"""
+components.html(slideshow_html, height=450)
+st.write("---")
+st.info("Use o menu na barra lateral para navegar. Para editar, selecione o perfil 'Diretoria' e insira a senha.")
