@@ -4,6 +4,13 @@ import data_manager
 import os
 import streamlit.components.v1 as components
 from datetime import datetime
+import locale
+
+# Configura a localidade para português para obter o nome do mês corretamente
+try:
+    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+except locale.Error:
+    st.warning("Localidade 'pt_BR.UTF-8' não encontrada. O nome do mês pode aparecer em inglês.")
 
 # --- Configuração da Página ---
 st.set_page_config(
@@ -35,7 +42,7 @@ def handle_profile_selection():
     profile = st.sidebar.radio("Selecione seu perfil:", ('Visitante', 'Diretoria'), index=0 if st.session_state.role == 'Visitante' else 1)
     if profile == 'Diretoria':
         if st.session_state.role == 'Diretoria':
-            st.sidebar.success(f"Logado como Diretoria.")
+            st.sidebar.success("Logado como Diretoria.")
             if st.sidebar.button("Sair do modo Edição"): st.session_state.role = 'Visitante'; st.rerun()
         else:
             password = st.sidebar.text_input("Senha da Diretoria:", type="password")
@@ -56,74 +63,73 @@ with st.sidebar:
     st.write("---"); logo_path = "logo_sao_jorge.png"
     if os.path.exists(logo_path): st.image(logo_path, width=150)
     st.title("São Jorge FC"); st.write("---"); st.caption("Desenvolvido por:")
-    st.markdown("**Gabriel Conrado**"); st.caption("📱 (21) 97140-0676")
+    st.markdown("**Gabriel Conrado**"); st.caption("📱 (21) 97275-7256")
 
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- NOVA SEÇÃO: ANIVERSARIANTES DO MÊS ---
-st.header("🎂 Aniversariantes do Mês")
+# --- SEÇÃO ATUALIZADA: ANIVERSARIANTES DO MÊS ---
+now = datetime.now()
+current_month_name = now.strftime('%B').capitalize()
+st.header(f"🎂 Aniversariantes de {current_month_name}")
 
-# Pega o mês atual
-current_month = datetime.now().month
 players = st.session_state.dados.get('players', [])
 birthday_players = []
 
 for player in players:
     dob_str = player.get('date_of_birth')
-    if dob_str:
+    if dob_str and len(dob_str.split('/')) == 3:
         try:
-            # Tenta converter a data de nascimento para objeto datetime
             dob_date = datetime.strptime(dob_str, "%d/%m/%Y")
-            if dob_date.month == current_month:
+            if dob_date.month == now.month:
                 birthday_players.append(player)
         except ValueError:
-            # Ignora datas em formato inválido
             continue
 
-# Ordena os aniversariantes pelo dia
 birthday_players.sort(key=lambda p: datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").day)
 
 if not birthday_players:
     st.info("Nenhum aniversariante este mês.")
 else:
-    # Cria colunas para cada aniversariante (até 4 por linha)
-    cols = st.columns(len(birthday_players))
+    # Lógica de grade aprimorada para suportar vários aniversariantes
+    num_columns = 4 # Define 4 jogadores por linha
+    cols = st.columns(num_columns)
     for i, player in enumerate(birthday_players):
-        with cols[i]:
+        col_index = i % num_columns
+        with cols[col_index]:
             with st.container(border=True):
                 st.subheader(player['name'])
-                
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_column_width=True)
+                st.image(image_url, use_column_width='auto')
                 
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
-                st.caption(f"Aniversário: {dob.strftime('%d/%m')}")
+                st.caption(f"Dia {dob.strftime('%d')}")
+                # Exibe o número da camisa se existir
+                if player.get('shirt_number'):
+                    st.markdown(f"**Camisa: {player.get('shirt_number')}**")
 
 st.write("---")
 
 # --- SEÇÃO DO TÍTULO ---
 st.title("🛡️ Central de Dados do São Jorge FC")
-if st.session_state.role == 'Diretoria':
-    st.markdown("##### 🔑 Você está no modo **Diretoria**.")
-else:
-    st.markdown("##### 👁️ Você está no modo **Visitante**.")
+if st.session_state.role == 'Diretoria': st.markdown("##### 🔑 Você está no modo **Diretoria**.")
+else: st.markdown("##### 👁️ Você está no modo **Visitante**.")
 st.write("---")
 
 # --- CONTADOR REGRESSIVO ---
 st.header("⏳ Próximo Jogo")
-# (O código do contador continua aqui, sem alterações)
-countdown_html = """ ... """ # Omitido para encurtar, mas está no seu código
+# (Código do contador omitido para encurtar)
+countdown_html = """ ... """
 components.html(countdown_html, height=150)
 
 st.write("---")
 
-# --- NOVA SEÇÃO: CARROSSEL DE FOTOS DO TIME ---
+# --- SEÇÃO DO CARROSSEL DE FOTOS ---
 st.header("🖼️ Galeria do Time")
 
-# IMPORTANTE: EDITE ESTA LISTA COM AS SUAS URLs
+# URLs padronizadas para maior estabilidade
 image_urls = [
-    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/15f9ded2ab39af7dab782c27e6f164022169cf43/player_photos/slideshow/20250817_075933.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_075933.jpg",
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_080001.jpg",
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085832.jpg",
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085914.jpg",
@@ -146,7 +152,7 @@ slideshow_html = f"""
         slideIndex++;
         if (slideIndex > slides.length) {{slideIndex = 1}}
         slides[slideIndex - 1].classList.add("active");
-        setTimeout(showSlides, 5000); // Muda a imagem a cada 5 segundos
+        setTimeout(showSlides, 5000);
     }}
     if (slides.length > 0) {{
         slides[0].classList.add("active");
