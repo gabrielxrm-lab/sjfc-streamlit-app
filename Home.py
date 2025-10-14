@@ -4,76 +4,21 @@ import data_manager
 import os
 import streamlit.components.v1 as components
 
-# --- Configuração da Página ---
-st.set_page_config(
-    page_title="Central do São Jorge FC",
-    page_icon="🛡️",
-    layout="wide"
-)
-
-# --- LÓGICA DE PERFIL E LOGIN ---
-def handle_profile_selection():
-    """Gerencia a seleção de perfil e o login da diretoria na barra lateral."""
-    if 'role' not in st.session_state:
-        st.session_state.role = 'Visitante'
-
-    st.sidebar.title("Perfil de Acesso")
-    profile = st.sidebar.radio(
-        "Selecione seu perfil:",
-        ('Visitante', 'Diretoria'),
-        index=0 if st.session_state.role == 'Visitante' else 1,
-        key='profile_selection'
-    )
-
-    if profile == 'Diretoria':
-        if st.session_state.role == 'Diretoria':
-            st.sidebar.success(f"Logado como Diretoria.")
-            if st.sidebar.button("Sair do modo Edição"):
-                st.session_state.role = 'Visitante'
-                st.rerun()
-        else:
-            password = st.sidebar.text_input("Senha da Diretoria:", type="password")
-            if st.sidebar.button("Entrar como Diretoria"):
-                # Use st.secrets.get para evitar erros se a seção não existir
-                creds = st.secrets.get("credentials", {})
-                correct_password = creds.get("diretoria_password")
-                
-                if correct_password and password == correct_password:
-                    st.session_state.role = 'Diretoria'
-                    st.rerun()
-                else:
-                    st.sidebar.error("Senha incorreta ou não configurada.")
-    else:
-        st.session_state.role = 'Visitante'
-
-# --- Roda a lógica de perfil e inicializa os dados ---
-handle_profile_selection()
+st.set_page_config(page_title="Central do São Jorge FC", page_icon="🛡️", layout="wide")
 data_manager.initialize_session_state()
 
-# --- Barra Lateral (Restante) ---
 with st.sidebar:
-    st.write("---")
     logo_path = "logo_sao_jorge.png"
     if os.path.exists(logo_path):
         st.image(logo_path, width=150)
-    
     st.title("São Jorge FC")
-    
-    # --- SEÇÃO DE CONTATO ADICIONADA AQUI ---
     st.write("---")
-    st.caption("Desenvolvido por:")
-    st.markdown("**Gabriel Conrado**") # Edite com seu nome
-    st.caption("📱 (21) 9 7275-7256") # Edite com seu telefone
+    if st.button("💾 Salvar Alterações na Nuvem", width='stretch', type="primary"):
+        data_manager.save_data_to_db()
 
-# --- Página Principal ---
 st.title("🛡️ Central de Dados do São Jorge FC")
-if st.session_state.role == 'Diretoria':
-    st.markdown("##### 🔑 Você está no modo **Diretoria**. Todas as funções de edição estão ativadas.")
-else:
-    st.markdown("##### 👁️ Você está no modo **Visitante**. Apenas visualização está disponível.")
+st.markdown("##### // Monitoramento de Performance de Atletas //")
 st.write("---")
-
-# --- CONTADOR REGRESSIVO ---
 st.header("⏳ Próximo Jogo")
 countdown_html = """
 <style>
@@ -102,7 +47,6 @@ countdown_html = """
 </script>
 """
 components.html(countdown_html, height=150)
-
 st.write("---")
-st.info("Use o menu na barra lateral para navegar. Para editar, selecione o perfil 'Diretoria' e insira a senha.")
-
+st.success("Bem-vindo! O acesso está aberto para visualização e edição.")
+st.info("Use o menu na barra lateral para navegar. Lembre-se de salvar suas alterações.")
