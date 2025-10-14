@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CSS para Fixar a Barra Lateral e Centralizar a Página ---
+# --- CSS para Estilos da Página ---
 st.markdown(
     """
     <style>
@@ -38,12 +38,25 @@ st.markdown(
             align-items: center;
             text-align: center;
         }
+        /* Ajusta os cards de aniversariante */
+        #birthday-cards [data-testid="stVerticalBlockBorderWrapper"] {
+            max-width: 220px;
+            margin: 0 auto;
+        }
+        /* NOVO ESTILO PARA DAR DESTAQUE AO DIA DO ANIVERSÁRIO */
+        .birthday-day {
+            font-size: 2.5rem;      /* Tamanho grande */
+            font-weight: bold;      /* Negrito */
+            color: #1E88E5;         /* Cor azul, a mesma do contador */
+            line-height: 1;         /* Remove espaçamento extra */
+            margin-bottom: 10px;    /* Espaço abaixo do número */
+        }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# --- LÓGICA DE PERFIL E LOGIN (ATUALIZADO PARA 'JOGADOR') ---
+# --- Lógica de Perfil e Login ---
 def handle_profile_selection():
     if 'role' not in st.session_state: st.session_state.role = 'Jogador'
     st.sidebar.title("Perfil de Acesso")
@@ -75,8 +88,8 @@ with st.sidebar:
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- TÍTULO CENTRALIZADO COM LOGO E SUBTEXTO (NO TOPO) ---
-logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
+# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
+logo_url = f"https://raw.githubusercontent.com/{data_manager.GITHUB_USER}/{data_manager.GITHUB_REPO}/main/logo_sao_jorge.png"
 st.markdown(f"""
     <div style="text-align: center;">
         <img src="{logo_url}" alt="Logo SJFC" width="80">
@@ -98,13 +111,13 @@ current_month_name = month_map_pt.get(now.month, "")
 st.header(f"🎂 Aniversariantes de {current_month_name}")
 
 players = st.session_state.dados.get('players', [])
-birthday_players = [p for p in players if p.get('date_of_birth') and len(p.get('date_of_birth').split('/')) == 3]
-birthday_players = [p for p in birthday_players if datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").month == now.month]
+birthday_players = [p for p in players if p.get('date_of_birth') and len(p.get('date_of_birth').split('/')) == 3 and (datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").month == now.month)]
 birthday_players.sort(key=lambda p: datetime.strptime(p.get('date_of_birth'), "%d/%m/%Y").day)
 
 if not birthday_players:
     st.info("Nenhum aniversariante este mês.")
 else:
+    st.markdown('<div id="birthday-cards">', unsafe_allow_html=True)
     num_columns = min(len(birthday_players), 4)
     cols = st.columns(num_columns)
     for i, player in enumerate(birthday_players):
@@ -112,13 +125,16 @@ else:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_container_width=True)
+                st.image(image_url, use_column_width=True)
                 
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
                 day_str = dob.strftime('%d')
                 st.caption("Dia")
+                # APLICA O NOVO ESTILO DE DESTAQUE AQUI
                 st.markdown(f"<p class='birthday-day'>{day_str}</p>", unsafe_allow_html=True)
+
                 if player.get('shirt_number'): st.markdown(f"**Camisa: {player.get('shirt_number')}**")
+    st.markdown('</div>', unsafe_allow_html=True)
 st.write("---")
 
 # --- CONTADOR REGRESSIVO ---
