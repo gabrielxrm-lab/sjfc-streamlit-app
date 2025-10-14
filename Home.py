@@ -31,7 +31,7 @@ st.markdown(
             top: 0;
             left: 0;
         }
-        /* Centraliza todo o conteúdo da página principal */
+        /* Centraliza o conteúdo da página principal */
         .main .block-container {
             display: flex;
             flex-direction: column;
@@ -79,8 +79,8 @@ with st.sidebar:
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- TÍTULO CENTRALIZADO ---
-logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
+# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
+logo_url = f"https://raw.githubusercontent.com/{data_manager.GITHUB_USER}/{data_manager.GITHUB_REPO}/main/logo_sao_jorge.png"
 st.markdown(f"""
     <div style="text-align: center;">
         <img src="{logo_url}" alt="Logo SJFC" width="80">
@@ -90,9 +90,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if st.session_state.role == 'Diretoria':
-    st.markdown("<h5 style='text-align: center;'>🔑 Você está no modo Diretoria.</h5>", unsafe_allow_html=True)
+    st.markdown("##### 🔑 Você está no modo **Diretoria**.")
 else:
-    st.markdown("<h5 style='text-align: center;'>👁️ Você está no modo Jogador.</h5>", unsafe_allow_html=True)
+    st.markdown("##### 👁️ Você está no modo **Jogador**.")
 st.write("---")
 
 # --- SEÇÃO: ANIVERSARIANTES DO MÊS ---
@@ -109,14 +109,15 @@ birthday_players.sort(key=lambda p: datetime.strptime(p.get('date_of_birth'), "%
 if not birthday_players:
     st.info("Nenhum aniversariante este mês.")
 else:
-    num_columns = 4
+    num_columns = min(len(birthday_players), 4) # Garante que não crie mais colunas que aniversariantes
     cols = st.columns(num_columns)
     for i, player in enumerate(birthday_players):
         with cols[i % num_columns]:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_container_width=True) # Corrigido para o parâmetro correto
+                # --- CORREÇÃO DEFINITIVA PARA A IMAGEM PEQUENA ---
+                st.image(image_url, use_column_width=True)
                 
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
                 st.caption(f"Dia {dob.strftime('%d')}")
