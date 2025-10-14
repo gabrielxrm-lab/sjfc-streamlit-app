@@ -24,7 +24,7 @@ def init_supabase_client():
 
 supabase: Client = init_supabase_client()
 
-# --- FUNÇÕES DE STORAGE ---
+# --- Funções de Storage ---
 def upload_file_to_storage(file_bytes, destination_path):
     if not supabase: st.error("Não foi possível fazer o upload: cliente Supabase não conectado."); return None
     try:
