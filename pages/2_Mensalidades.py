@@ -20,6 +20,7 @@ with c2:
         data_manager.save_data_to_db()
 
 jogadores = st.session_state.dados.get('players', [])
+# ... (o resto do arquivo permanece o mesmo)
 if not jogadores:
     st.warning("Nenhum jogador cadastrado.")
 else:
