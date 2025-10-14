@@ -11,6 +11,22 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- CÓDIGO PARA FIXAR A BARRA LATERAL ---
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 300px; /* Largura da barra lateral */
+            position: fixed;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # --- LÓGICA DE PERFIL E LOGIN ---
 def handle_profile_selection():
     """Gerencia a seleção de perfil e o login da diretoria na barra lateral."""
@@ -43,7 +59,6 @@ def handle_profile_selection():
                 else:
                     st.sidebar.error("Senha incorreta ou não configurada.")
     else:
-        # Se o perfil selecionado for Visitante, define o estado
         if st.session_state.role == 'Diretoria':
              st.session_state.role = 'Visitante'
              st.rerun()
@@ -64,11 +79,10 @@ with st.sidebar:
     
     st.title("São Jorge FC")
     
-    # --- Seção de Contato ---
     st.write("---")
     st.caption("Desenvolvido por:")
-    st.markdown("**Gabriel Conrado**") # Seu nome
-    st.caption("📱 (21) 97140-0676") # Seu telefone
+    st.markdown("**Gabriel Conrado**")
+    st.caption("📱 (21) 97140-0676")
 
 # --- Página Principal ---
 st.title("🛡️ Central de Dados do São Jorge FC")
