@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CSS para Estilos da Página ---
+# --- CSS para Fixar a Barra Lateral e Centralizar a Página ---
 st.markdown(
     """
     <style>
@@ -92,7 +92,7 @@ with st.sidebar:
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- TÍTULO CENTRALIZADO ---
+# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
 logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
 st.markdown(f"""
     <div style="text-align: center;">
@@ -129,7 +129,9 @@ else:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_container_width=True)
+                # --- CORREÇÃO DEFINITIVA PARA A IMAGEM PEQUENA E O AVISO ---
+                st.image(image_url, use_column_width=True)
+                
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
                 day_str = dob.strftime('%d')
                 st.caption("Dia")
