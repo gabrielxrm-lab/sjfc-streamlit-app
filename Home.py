@@ -123,7 +123,7 @@ st.header("🖼️ Galeria do Time")
 
 # IMPORTANTE: EDITE ESTA LISTA COM AS SUAS URLs
 image_urls = [
-    "https://raw.github.com/gabrielxrm-lab/sjfc-streamlit-app/blob/main/player_photos/slideshow/20250817_075933.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/15f9ded2ab39af7dab782c27e6f164022169cf43/player_photos/slideshow/20250817_075933.jpg",
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/exemplo2.jpg",
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/exemplo3.jpg"
 ]
