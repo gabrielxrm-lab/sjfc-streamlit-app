@@ -16,7 +16,7 @@ with c1:
     selected_year_str = str(selected_year)
 with c2:
     st.write(""); st.write("")
-    if st.button("💾 Salvar Alterações na Nuvem", width='stretch', type="primary"):
+    if st.button("💾 Salvar Alterações na Nuvem", use_container_width=True, type="primary"):
         data_manager.save_data_to_db()
 
 jogadores = st.session_state.dados.get('players', [])
