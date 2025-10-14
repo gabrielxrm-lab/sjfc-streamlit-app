@@ -24,7 +24,7 @@ def init_supabase_client():
 
 supabase: Client = init_supabase_client()
 
-# --- FUNÇÕES DE STORAGE ---
+# --- FUNÇÕES DE STORAGE (A DEFINIÇÃO QUE FALTAVA) ---
 
 def upload_file_to_storage(file_bytes, destination_path):
     """Faz o upload de um arquivo em bytes para o Supabase Storage."""
@@ -36,7 +36,7 @@ def upload_file_to_storage(file_bytes, destination_path):
         response = supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
             path=destination_path,
             file=file_like_object,
-            file_options={"cache-control": "3600", "upsert": "true"}
+            file_options={"cache-control": "3600", "upsert": "true"} # upsert=true sobrescreve se já existir
         )
         return get_public_url(destination_path)
     except Exception as e:
@@ -45,7 +45,8 @@ def upload_file_to_storage(file_bytes, destination_path):
 
 def get_public_url(path):
     """Obtém a URL pública de um arquivo no Storage."""
-    if not supabase: return None
+    if not supabase:
+        return None
     try:
         return supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(path)
     except Exception as e:
@@ -60,7 +61,8 @@ def initialize_session_state():
     os.makedirs(SUMULA_LEGACY_DIR, exist_ok=True)
 
 def load_data_from_db():
-    if not supabase: return {'players': [], 'monthly_payments': {}, 'game_stats': []}
+    if not supabase:
+        return {'players': [], 'monthly_payments': {}, 'game_stats': []}
     try:
         players_response = supabase.table('Players').select('*').order('name').execute()
         players_data = players_response.data
