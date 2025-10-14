@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CSS para Fixar a Barra Lateral e Centralizar a Página ---
+# --- CSS para Estilos da Página ---
 st.markdown(
     """
     <style>
@@ -87,8 +87,8 @@ with st.sidebar:
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- TÍTULO CENTRALIZADO ---
-logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
+# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
+logo_url = f"https://raw.githubusercontent.com/{data_manager.GITHUB_USER}/{data_manager.GITHUB_REPO}/main/logo_sao_jorge.png"
 st.markdown(f"""
     <div style="text-align: center;">
         <img src="{logo_url}" alt="Logo SJFC" width="80">
@@ -124,8 +124,7 @@ else:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                
-                # --- ALTERAÇÃO FEITA AQUI ---
+                # --- CORREÇÃO DEFINITIVA PARA A IMAGEM E O AVISO ---
                 st.image(image_url, use_container_width=True)
                 
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
@@ -136,13 +135,13 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
 st.write("---")
 
-# --- CONTADOR REGRESSIVO ---
+# --- CONTADOR REGRESSIVO (CÓDIGO COMPLETO) ---
 st.header("⏳ Próximo Jogo")
 countdown_html = """<style>.countdown-container{font-family:'Consolas','Monaco',monospace;text-align:center;background-color:#262730;padding:20px;border-radius:10px;color:#FAFAFA;font-size:1.5rem}.countdown-time{font-size:2.5rem;font-weight:bold;color:#1E88E5;letter-spacing:5px}.countdown-label{font-size:1rem;text-transform:uppercase}</style><div class="countdown-container"><p class="countdown-label">Contagem regressiva para Domingo, 07:00</p><div id="countdown" class="countdown-time">Calculando...</div></div><script>function startCountdown(){const e=document.getElementById("countdown");if(e){const o=setInterval(()=>{const t=new Date,n=new Date;n.setDate(t.getDate()+(7-t.getDay())%7),n.setHours(7,0,0,0),n<t&&n.setDate(n.getDate()+7);const d=n-t;if(d<0)return e.innerHTML="É DIA DE JOGO!",void clearInterval(o);const a=Math.floor(d/864e5),s=Math.floor(d%864e5/36e5),l=Math.floor(d%36e5/6e4),i=Math.floor(d%6e4/1e3);e.innerHTML=`${a}d ${s.toString().padStart(2,"0")}h ${l.toString().padStart(2,"0")}m ${i.toString().padStart(2,"0")}s`},1e3)}}startCountdown();</script>"""
 components.html(countdown_html, height=150)
 st.write("---")
 
-# --- CARROSSEL DE FOTOS ---
+# --- CARROSSEL DE FOTOS (CÓDIGO COMPLETO) ---
 st.header("🖼️ Galeria do Time")
 image_urls = [
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_075933.jpg",
