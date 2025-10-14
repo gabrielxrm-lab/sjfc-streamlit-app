@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Central do São Jorge FC",
-    page_icon="🛡️",
+    page_icon="logo_sao_jorge.png", # <-- ALTERAÇÃO FEITA AQUI
     layout="wide"
 )
 
@@ -16,7 +16,7 @@ st.markdown(
     """
     <style>
         section[data-testid="stSidebar"] {
-            width: 300px; /* Largura da barra lateral */
+            width: 300px;
             position: fixed;
             height: 100%;
             top: 0;
@@ -29,42 +29,28 @@ st.markdown(
 
 # --- LÓGICA DE PERFIL E LOGIN ---
 def handle_profile_selection():
-    """Gerencia a seleção de perfil e o login da diretoria na barra lateral."""
     if 'role' not in st.session_state:
         st.session_state.role = 'Visitante'
-
     st.sidebar.title("Perfil de Acesso")
-    profile = st.sidebar.radio(
-        "Selecione seu perfil:",
-        ('Visitante', 'Diretoria'),
-        index=0 if st.session_state.role == 'Visitante' else 1,
-        key='profile_selection'
-    )
-
+    profile = st.sidebar.radio("Selecione seu perfil:", ('Visitante', 'Diretoria'), index=0 if st.session_state.role == 'Visitante' else 1)
     if profile == 'Diretoria':
         if st.session_state.role == 'Diretoria':
             st.sidebar.success(f"Logado como Diretoria.")
             if st.sidebar.button("Sair do modo Edição"):
-                st.session_state.role = 'Visitante'
-                st.rerun()
+                st.session_state.role = 'Visitante'; st.rerun()
         else:
             password = st.sidebar.text_input("Senha da Diretoria:", type="password")
             if st.sidebar.button("Entrar como Diretoria"):
-                creds = st.secrets.get("credentials", {})
-                correct_password = creds.get("diretoria_password")
-                
+                creds = st.secrets.get("credentials", {}); correct_password = creds.get("diretoria_password")
                 if correct_password and password == correct_password:
-                    st.session_state.role = 'Diretoria'
-                    st.rerun()
+                    st.session_state.role = 'Diretoria'; st.rerun()
                 else:
                     st.sidebar.error("Senha incorreta ou não configurada.")
     else:
         if st.session_state.role == 'Diretoria':
-             st.session_state.role = 'Visitante'
-             st.rerun()
+             st.session_state.role = 'Visitante'; st.rerun()
         else:
             st.session_state.role = 'Visitante'
-
 
 # --- Roda a lógica de perfil e inicializa os dados ---
 handle_profile_selection()
@@ -76,9 +62,7 @@ with st.sidebar:
     logo_path = "logo_sao_jorge.png"
     if os.path.exists(logo_path):
         st.image(logo_path, width=150)
-    
     st.title("São Jorge FC")
-    
     st.write("---")
     st.caption("Desenvolvido por:")
     st.markdown("**Gabriel Conrado**")
@@ -121,6 +105,5 @@ countdown_html = """
 </script>
 """
 components.html(countdown_html, height=150)
-
 st.write("---")
 st.info("Use o menu na barra lateral para navegar. Para editar, selecione o perfil 'Diretoria' e insira a senha.")
