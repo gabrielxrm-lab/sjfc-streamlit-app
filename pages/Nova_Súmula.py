@@ -7,12 +7,14 @@ import io
 from collections import defaultdict
 
 try:
-    from reportlab.platypus import SimpleDocTemplate, Preformatted; from reportlab.lib.pagesizes import A4; from reportlab.lib.styles import getSampleStyleSheet; from reportlab.lib.units import cm; REPORTLAB_AVAILABLE = True
+    from reportlab.plat-yous import SimpleDocTemplate, Preformatted; from reportlab.lib.pagesizes import A4; from reportlab.lib.styles import getSampleStyleSheet; from reportlab.lib.units import cm; REPORTLAB_AVAILABLE = True
 except ImportError: REPORTLAB_AVAILABLE = False
 
+IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 st.set_page_config(layout="wide", page_title="Nova Súmula")
 if 'dados' not in st.session_state: data_manager.initialize_session_state()
 if 'sumula_data' not in st.session_state: st.session_state.sumula_data = {}
+
 def limpar_sumula(): st.session_state.sumula_data.clear()
 
 def montar_sumula_texto(dados_jogo):
@@ -39,74 +41,82 @@ def save_stats_and_download_sumula():
     limpar_sumula()
 
 st.title("📋 Gerador de Súmula")
-if st.button("🗑️ Limpar Campos da Súmula", type="secondary", on_click=limpar_sumula): st.toast("Campos da súmula foram limpos.")
+if not IS_DIRETORIA: st.warning("🔒 Apenas a Diretoria pode criar ou editar súmulas.")
+if st.button("🗑️ Limpar Campos da Súmula", type="secondary", on_click=limpar_sumula, disabled=not IS_DIRETORIA): st.toast("Campos da súmula foram limpos.")
 with st.container(border=True):
-    st.subheader("📅 Dados do Jogo e Destaques"); c1, c2, c3 = st.columns(3); data_jogo = c1.date_input("Data", format="DD/MM/YYYY", key="data_jogo"); dia_semana = c2.text_input("Dia da Semana", value=data_jogo.strftime("%A")); rodada = c3.text_input("Rodada")
-    gol_jogo = c1.text_input("Gol do Jogo", key="gol_jogo"); goleiro_jogo = c2.text_input("Goleiro do Jogo", key="goleiro_jogo"); craque_jogo = c3.text_input("Craque do Jogo", key="craque_jogo")
+    st.subheader("📅 Dados do Jogo e Destaques"); c1, c2, c3 = st.columns(3); data_jogo = c1.date_input("Data", format="DD/MM/YYYY", key="data_jogo", disabled=not IS_DIRETORIA); dia_semana = c2.text_input("Dia da Semana", value=data_jogo.strftime("%A"), disabled=not IS_DIRETORIA); rodada = c3.text_input("Rodada", disabled=not IS_DIRETORIA)
+    gol_jogo = c1.text_input("Gol do Jogo", key="gol_jogo", disabled=not IS_DIRETORIA); goleiro_jogo = c2.text_input("Goleiro do Jogo", key="goleiro_jogo", disabled=not IS_DIRETORIA); craque_jogo = c3.text_input("Craque do Jogo", key="craque_jogo", disabled=not IS_DIRETORIA)
+
+# --- CORREÇÃO AQUI ---
+# A variável 'sd' precisa ser definida ANTES de ser usada.
 col_home, col_away = st.columns(2)
+sd = st.session_state.sumula_data
+
 with col_home:
     with st.container(border=True):
-        st.subheader("🔴 Time da Casa"); home_name = st.text_input("Nome", value="SÃO JORGE", key="home_name"); home_score = sum(sd.get('goals_home', {}).values()); st.metric("Placar", home_score)
+        st.subheader("🔴 Time da Casa"); home_name = st.text_input("Nome", value="SÃO JORGE", key="home_name", disabled=not IS_DIRETORIA); home_score = sum(sd.get('goals_home', {}).values()); st.metric("Placar", home_score)
         with st.form("home_goal_form", clear_on_submit=True):
-            st.markdown("**Adicionar Gol**"); nome, camisa, qtd = st.columns(3); nome_gol = nome.text_input("Jogador", key="h_g_n", label_visibility="collapsed", placeholder="Nome"); camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="h_g_c", label_visibility="collapsed"); qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="h_g_q", label_visibility="collapsed")
-            if st.form_submit_button("➕ Adicionar Gol"):
+            st.markdown("**Adicionar Gol**"); nome, camisa, qtd = st.columns(3); nome_gol = nome.text_input("Jogador", key="h_g_n", label_visibility="collapsed", placeholder="Nome", disabled=not IS_DIRETORIA); camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="h_g_c", label_visibility="collapsed", disabled=not IS_DIRETORIA); qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="h_g_q", label_visibility="collapsed", disabled=not IS_DIRETORIA)
+            if st.form_submit_button("➕ Adicionar Gol", disabled=not IS_DIRETORIA):
                 if nome_gol and camisa_gol > 0: chave = (nome_gol, int(camisa_gol)); sd.setdefault('goals_home', {}); sd['goals_home'][chave] = sd['goals_home'].get(chave, 0) + qtd_gol
         st.write("**Gols Registrados:**")
         for (nome, camisa), qtd in list(sd.get('goals_home', {}).items()):
             c1, c2 = st.columns([4, 1]); c1.text(f"⚽ {nome} ({camisa}) - {qtd} gol(s)");
-            if c2.button("🗑️", key=f"del_hg_{nome}_{camisa}", width='stretch'): del sd['goals_home'][(nome, camisa)]; st.rerun()
+            if c2.button("🗑️", key=f"del_hg_{nome}_{camisa}", use_container_width=True, disabled=not IS_DIRETORIA): del sd['goals_home'][(nome, camisa)]; st.rerun()
         st.write("---")
         with st.form("home_card_form", clear_on_submit=True):
-            st.markdown("**Adicionar Cartão**"); nome_cartao = st.text_input("Jogador", key="h_c_n", label_visibility="collapsed", placeholder="Nome"); c1, c2 = st.columns(2)
-            if c1.form_submit_button("🟨 Amarelo", width='stretch'):
+            st.markdown("**Adicionar Cartão**"); nome_cartao = st.text_input("Jogador", key="h_c_n", label_visibility="collapsed", placeholder="Nome", disabled=not IS_DIRETORIA); c1, c2 = st.columns(2)
+            if c1.form_submit_button("🟨 Amarelo", use_container_width=True, disabled=not IS_DIRETORIA):
                 if nome_cartao: sd.setdefault('yellow_cards_home', []).append(nome_cartao)
-            if c2.form_submit_button("🟥 Vermelho", width='stretch'):
+            if c2.form_submit_button("🟥 Vermelho", use_container_width=True, disabled=not IS_DIRETORIA):
                 if nome_cartao: sd.setdefault('red_cards_home', []).append(nome_cartao)
         st.write("**Cartões Registrados:**")
         for i, nome in enumerate(list(sd.get('yellow_cards_home', []))):
             c1, c2 = st.columns([4, 1]); c1.text(f"🟨 {nome}");
-            if c2.button("🗑️", key=f"del_hy_{nome}_{i}", width='stretch'): sd['yellow_cards_home'].pop(i); st.rerun()
+            if c2.button("🗑️", key=f"del_hy_{nome}_{i}", use_container_width=True, disabled=not IS_DIRETORIA): sd['yellow_cards_home'].pop(i); st.rerun()
         for i, nome in enumerate(list(sd.get('red_cards_home', []))):
             c1, c2 = st.columns([4, 1]); c1.text(f"🟥 {nome}");
-            if c2.button("🗑️", key=f"del_hr_{nome}_{i}", width='stretch'): sd['red_cards_home'].pop(i); st.rerun()
+            if c2.button("🗑️", key=f"del_hr_{nome}_{i}", use_container_width=True, disabled=not IS_DIRETORIA): sd['red_cards_home'].pop(i); st.rerun()
+
 with col_away:
     with st.container(border=True):
-        st.subheader("🟦 Time Visitante"); away_name = st.text_input("Nome", value="ADVERSÁRIO", key="away_name"); away_score = sum(sd.get('goals_away', {}).values()); st.metric("Placar", away_score)
+        st.subheader("🟦 Time Visitante"); away_name = st.text_input("Nome", value="ADVERSÁRIO", key="away_name", disabled=not IS_DIRETORIA); away_score = sum(sd.get('goals_away', {}).values()); st.metric("Placar", away_score)
         with st.form("away_goal_form", clear_on_submit=True):
-            st.markdown("**Adicionar Gol**"); nome, camisa, qtd = st.columns(3); nome_gol = nome.text_input("Jogador", key="a_g_n", label_visibility="collapsed", placeholder="Nome"); camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="a_g_c", label_visibility="collapsed"); qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="a_g_q", label_visibility="collapsed")
-            if st.form_submit_button("➕ Adicionar Gol"):
+            st.markdown("**Adicionar Gol**"); nome, camisa, qtd = st.columns(3); nome_gol = nome.text_input("Jogador", key="a_g_n", label_visibility="collapsed", placeholder="Nome", disabled=not IS_DIRETORIA); camisa_gol = camisa.number_input("Camisa", min_value=1, step=1, key="a_g_c", label_visibility="collapsed", disabled=not IS_DIRETORIA); qtd_gol = qtd.number_input("Qtd", min_value=1, step=1, value=1, key="a_g_q", label_visibility="collapsed", disabled=not IS_DIRETORIA)
+            if st.form_submit_button("➕ Adicionar Gol", disabled=not IS_DIRETORIA):
                 if nome_gol and camisa_gol > 0: chave = (nome_gol, int(camisa_gol)); sd.setdefault('goals_away', {}); sd['goals_away'][chave] = sd['goals_away'].get(chave, 0) + qtd_gol
         st.write("**Gols Registrados:**")
         for (nome, camisa), qtd in list(sd.get('goals_away', {}).items()):
             c1, c2 = st.columns([4, 1]); c1.text(f"⚽ {nome} ({camisa}) - {qtd} gol(s)");
-            if c2.button("🗑️", key=f"del_ag_{nome}_{camisa}", width='stretch'): del sd['goals_away'][(nome, camisa)]; st.rerun()
+            if c2.button("🗑️", key=f"del_ag_{nome}_{camisa}", use_container_width=True, disabled=not IS_DIRETORIA): del sd['goals_away'][(nome, camisa)]; st.rerun()
         st.write("---")
         with st.form("away_card_form", clear_on_submit=True):
-            st.markdown("**Adicionar Cartão**"); nome_cartao = st.text_input("Jogador", key="a_c_n", label_visibility="collapsed", placeholder="Nome"); c1, c2 = st.columns(2)
-            if c1.form_submit_button("🟨 Amarelo", width='stretch'):
+            st.markdown("**Adicionar Cartão**"); nome_cartao = st.text_input("Jogador", key="a_c_n", label_visibility="collapsed", placeholder="Nome", disabled=not IS_DIRETORIA); c1, c2 = st.columns(2)
+            if c1.form_submit_button("🟨 Amarelo", use_container_width=True, disabled=not IS_DIRETORIA):
                 if nome_cartao: sd.setdefault('yellow_cards_away', []).append(nome_cartao)
-            if c2.form_submit_button("🟥 Vermelho", width='stretch'):
+            if c2.form_submit_button("🟥 Vermelho", use_container_width=True, disabled=not IS_DIRETORIA):
                 if nome_cartao: sd.setdefault('red_cards_away', []).append(nome_cartao)
         st.write("**Cartões Registrados:**")
         for i, nome in enumerate(list(sd.get('yellow_cards_away', []))):
             c1, c2 = st.columns([4, 1]); c1.text(f"🟨 {nome}");
-            if c2.button("🗑️", key=f"del_ay_{nome}_{i}", width='stretch'): sd['yellow_cards_away'].pop(i); st.rerun()
+            if c2.button("🗑️", key=f"del_ay_{nome}_{i}", use_container_width=True, disabled=not IS_DIRETORIA): sd['yellow_cards_away'].pop(i); st.rerun()
         for i, nome in enumerate(list(sd.get('red_cards_away', []))):
             c1, c2 = st.columns([4, 1]); c1.text(f"🟥 {nome}");
-            if c2.button("🗑️", key=f"del_ar_{nome}_{i}", width='stretch'): sd['red_cards_away'].pop(i); st.rerun()
+            if c2.button("🗑️", key=f"del_ar_{nome}_{i}", use_container_width=True, disabled=not IS_DIRETORIA): sd['red_cards_away'].pop(i); st.rerun()
+
 st.write("---"); st.header("📌 Ocorrências Gerais")
 def create_occurrence_section(title, key, placeholder):
     with st.container(border=True):
         st.subheader(title)
         with st.form(f"form_{key}", clear_on_submit=True):
-            new_item = st.text_input("Adicionar nome:", key=f"add_{key}", placeholder=placeholder, label_visibility="collapsed")
-            if st.form_submit_button(f"➕ Adicionar a {title}"):
+            new_item = st.text_input("Adicionar nome:", key=f"add_{key}", placeholder=placeholder, label_visibility="collapsed", disabled=not IS_DIRETORIA)
+            if st.form_submit_button(f"➕ Adicionar a {title}", disabled=not IS_DIRETORIA):
                 if new_item: sd.setdefault(key, []).append(new_item)
         st.write("**Lista Atual:**");
         if not sd.get(key): st.caption("Vazia")
         for i, item in enumerate(list(sd.get(key, []))):
             c1, c2 = st.columns([4, 1]); c1.text(item);
-            if c2.button("🗑️", key=f"del_{key}_{i}", width='stretch'): sd[key].pop(i); st.rerun()
+            if c2.button("🗑️", key=f"del_{key}_{i}", use_container_width=True, disabled=not IS_DIRETORIA): sd[key].pop(i); st.rerun()
 c1, c2, c3 = st.columns(3)
 with c1: create_occurrence_section("🚫 Suspensos", "suspensos", "Nome do jogador"); create_occurrence_section("📌 Faltas não justificadas", "faltas_nao", "Nome do jogador")
 with c2: create_occurrence_section("📆 Cumpriu Suspensão", "cumpriu_suspensao", "Nome do jogador"); create_occurrence_section("✅ Faltas justificadas", "faltas_sim", "Nome (motivo)")
@@ -115,8 +125,8 @@ st.write("---")
 with st.container(border=True):
     st.header("📄 Prévia e Download da Súmula"); dados_jogo_dict = {'data': data_jogo.strftime("%d-%m-%Y"), 'dia': dia_semana, 'rodada': rodada, 'gol_do_jogo': gol_jogo, 'goleiro_do_jogo': goleiro_jogo, 'craque_do_jogo': craque_jogo, 'home_name': home_name, 'away_name': away_name}; sumula_final = montar_sumula_texto(dados_jogo_dict)
     st.code(sumula_final, height=400); nome_base_arquivo = f"sumula_{data_jogo.strftime('%d-%m-%Y')}"; c1, c2 = st.columns(2)
-    if c1.button("Salvar Estatísticas e Baixar TXT", width='stretch', type="primary", on_click=save_stats_and_download_sumula):
+    if c1.button("Salvar Estatísticas e Baixar TXT", use_container_width=True, type="primary", on_click=save_stats_and_download_sumula, disabled=not IS_DIRETORIA):
         st.download_button(label="Clique aqui para baixar o TXT", data=sumula_final.encode('utf-8'), file_name=f"{nome_base_arquivo}.txt", mime="text/plain")
-    if REPORTLAB_AVAILABLE and c2.button("Salvar Estatísticas e Baixar PDF", width='stretch', on_click=save_stats_and_download_sumula):
+    if REPORTLAB_AVAILABLE and c2.button("Salvar Estatísticas e Baixar PDF", use_container_width=True, on_click=save_stats_and_download_sumula, disabled=not IS_DIRETORIA):
         buffer = io.BytesIO(); doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm); story = [Preformatted(sumula_final, getSampleStyleSheet()["Code"])]; doc.build(story); pdf_bytes = buffer.getvalue()
         st.download_button(label="Clique aqui para baixar o PDF", data=pdf_bytes, file_name=f"{nome_base_arquivo}.pdf", mime="application/pdf")
