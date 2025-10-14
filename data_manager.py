@@ -5,11 +5,15 @@ import pandas as pd
 from datetime import datetime
 from supabase import create_client, Client
 import io
+import requests
 
 # --- Configurações ---
 PLAYER_PHOTOS_DIR = 'player_photos'
 SUMULA_LEGACY_DIR = 'sumulas'
 SUPABASE_BUCKET_NAME = "arquivos_sjfc"
+GITHUB_USER = "gabrielxrm-lab" 
+GITHUB_REPO = "sjfc-streamlit-app"
+FOTOS_PATH = "player_photos"
 
 # --- Conexão com Supabase ---
 @st.cache_resource
@@ -24,24 +28,24 @@ def init_supabase_client():
 
 supabase: Client = init_supabase_client()
 
-# --- Funções de Storage ---
-def upload_file_to_storage(file_bytes, destination_path):
-    if not supabase: st.error("Não foi possível fazer o upload: cliente Supabase não conectado."); return None
+# --- FUNÇÕES DE FOTO DO GITHUB ---
+@st.cache_data(ttl=300)
+def get_photo_list_from_github():
+    api_url = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/contents/{FOTOS_PATH}"
     try:
-        file_like_object = io.BytesIO(file_bytes)
-        supabase.storage.from_(SUPABASE_BUCKET_NAME).upload(
-            path=destination_path,
-            file=file_like_object,
-            file_options={"cache-control": "3600", "upsert": "true"}
-        )
-        return get_public_url(destination_path)
-    except Exception as e: st.error(f"Erro no upload do arquivo: {e}"); return None
+        response = requests.get(api_url)
+        response.raise_for_status()
+        files = response.json()
+        photo_names = [file['name'] for file in files if file['type'] == 'file' and not file['name'].endswith('.txt')]
+        return ["Nenhuma"] + sorted(photo_names)
+    except Exception as e:
+        st.error(f"Não foi possível buscar as fotos do GitHub. Erro: {e}")
+        return ["Nenhuma"]
 
-def get_public_url(path):
-    if not supabase: return None
-    try:
-        return supabase.storage.from_(SUPABASE_BUCKET_NAME).get_public_url(path)
-    except Exception as e: st.error(f"Erro ao obter URL pública: {e}"); return None
+def get_github_image_url(filename):
+    if not filename or filename == "Nenhuma":
+        return "https://via.placeholder.com/200x200.png?text=Sem+Foto"
+    return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/{FOTOS_PATH}/{filename}"
 
 # --- Funções de Dados ---
 def initialize_session_state():
@@ -70,26 +74,17 @@ def save_data_to_db():
     try:
         players_to_save = st.session_state.dados.get('players', [])
         if players_to_save:
-            # --- CORREÇÃO APLICADA AQUI ---
-            # Prepara uma lista "limpa" para o upsert.
             upsert_list = []
             for player in players_to_save:
-                # Se o jogador não tem um ID válido, é novo.
                 if not player.get('id'):
-                    # Cria uma cópia do jogador e remove a chave 'id' se ela existir (mesmo que seja None)
                     new_player = player.copy()
                     new_player.pop('id', None) 
                     upsert_list.append(new_player)
                 else:
-                    # Se o jogador já tem ID, apenas o adiciona à lista.
                     upsert_list.append(player)
-            
-            if upsert_list:
-                supabase.table('Players').upsert(upsert_list).execute()
-
-        # O resto da função continua igual...
+            if upsert_list: supabase.table('Players').upsert(upsert_list).execute()
         payments_to_insert = []
-        player_ids_in_app = [p['id'] for p in players_to_save if 'id' in p]
+        player_ids_in_app = [p['id'] for p in st.session_state.dados.get('players', []) if 'id' in p]
         if player_ids_in_app:
             supabase.table('monthly_payments').delete().in_('player_id', player_ids_in_app).execute()
             payments_data = st.session_state.dados.get('monthly_payments', {})
@@ -99,10 +94,8 @@ def save_data_to_db():
                         for month, status in months.items():
                             payments_to_insert.append({'player_id': int(player_id), 'year': int(year), 'month': int(month), 'status': status})
             if payments_to_insert: supabase.table('monthly_payments').insert(payments_to_insert).execute()
-        
-        st.success("✅ Dados de jogadores e mensalidades salvos na nuvem!")
+        st.success("✅ Dados salvos na nuvem!")
         st.session_state['dados'] = load_data_from_db(); st.rerun()
-
     except Exception as e: st.error(f"Erro ao salvar dados no Supabase: {e}")
 
 def save_game_stats_to_db(stats_list):
