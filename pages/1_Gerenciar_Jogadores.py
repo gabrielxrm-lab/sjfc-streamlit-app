@@ -26,13 +26,15 @@ if not IS_DIRETORIA:
 # --- Formulário para Adicionar/Editar Jogador ---
 if IS_DIRETORIA:
     with st.expander("➕ Cadastrar Novo Jogador ou Editar Existente"):
+        # A função agora é chamada a partir do data_manager
+        available_photos = data_manager.get_photo_list_from_github()
+
         jogadores_lista = st.session_state.dados.get('players', []); jogadores_nomes = ["Novo Jogador"] + sorted([p['name'] for p in jogadores_lista]); selected_player_name = st.selectbox("Selecione um jogador para editar ou 'Novo Jogador'", jogadores_nomes); player_to_edit = None
         if selected_player_name != "Novo Jogador": player_to_edit = next((p for p in jogadores_lista if p['name'] == selected_player_name), None)
         
         with st.form("player_form", clear_on_submit=True):
             name = st.text_input("Nome do Jogador", value=player_to_edit['name'] if player_to_edit else "")
             
-            # Adicionado campo para número da camisa
             col1, col2 = st.columns(2)
             with col1:
                 position_list = ["GOLEIRO", "ZAGUEIRO", "LATERAL", "MEIO-CAMPO", "ATACANTE"]; pos_index = position_list.index(player_to_edit['position']) if player_to_edit and player_to_edit.get('position') in position_list else 3; position = st.selectbox("Posição", position_list, index=pos_index)
@@ -42,8 +44,6 @@ if IS_DIRETORIA:
             dob = st.text_input("Data Nasc. (DD/MM/AAAA)", value=player_to_edit.get('date_of_birth', '') if player_to_edit else "")
             phone = st.text_input("Telefone", value=player_to_edit.get('phone', '') if player_to_edit else "")
             
-            # Seletor de fotos
-            available_photos = data_manager.get_photo_list_from_github() if IS_DIRETORIA else ["Nenhuma"]
             current_photo_file = player_to_edit.get('photo_file', 'Nenhuma') if player_to_edit else 'Nenhuma'
             photo_index = available_photos.index(current_photo_file) if current_photo_file in available_photos else 0
             selected_photo = st.selectbox("Selecione a foto do jogador (da pasta no GitHub)", options=available_photos, index=photo_index)
@@ -53,10 +53,7 @@ if IS_DIRETORIA:
                 if not name or not position: st.error("Nome e Posição são obrigatórios.")
                 else:
                     photo_filename = selected_photo if selected_photo != "Nenhuma" else ""
-                    player_data = {
-                        'name': name.upper(), 'position': position, 'shirt_number': shirt_number,
-                        'date_of_birth': dob, 'phone': phone, 'photo_file': photo_filename
-                    }
+                    player_data = {'name': name.upper(), 'position': position, 'shirt_number': shirt_number, 'date_of_birth': dob, 'phone': phone, 'photo_file': photo_filename}
                     if player_to_edit: player_to_edit.update(player_data); st.success(f"Jogador '{name}' atualizado na lista.")
                     else: player_data['team_start_date'] = datetime.now().strftime('%d/%m/%Y'); st.session_state.dados['players'].append(player_data); st.success(f"Jogador '{name}' adicionado à lista.")
                     st.info("Lembre-se de salvar as alterações na nuvem."); st.rerun()
@@ -77,13 +74,7 @@ if not df_players.empty:
                 image_url = data_manager.get_github_image_url(player_data.get('photo_file'))
                 st.image(image_url, width=200)
             with col_data:
-                st.subheader(player_data['name'])
-                st.write(f"**Posição:** {player_data.get('position', 'N/A')}")
-                # Exibe o número da camisa na ficha
-                st.write(f"**Nº da Camisa:** {player_data.get('shirt_number', 'N/A')}")
-                st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
-                st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
-                st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
+                st.subheader(player_data['name']); st.write(f"**Posição:** {player_data.get('position', 'N/A')}"); st.write(f"**Nº da Camisa:** {player_data.get('shirt_number', 'N/A')}"); st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}"); st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}"); st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
     
     if IS_DIRETORIA:
         st.write("---"); st.header("🗑️ Excluir Jogadores"); players_to_delete_names = st.multiselect("Selecione para excluir", df_players['name'].tolist())
