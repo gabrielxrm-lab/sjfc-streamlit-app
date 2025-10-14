@@ -124,8 +124,10 @@ st.header("🖼️ Galeria do Time")
 # IMPORTANTE: EDITE ESTA LISTA COM AS SUAS URLs
 image_urls = [
     "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/15f9ded2ab39af7dab782c27e6f164022169cf43/player_photos/slideshow/20250817_075933.jpg",
-    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/exemplo2.jpg",
-    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/exemplo3.jpg"
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_080001.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085832.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085914.jpg",
+    "https://raw.githubusercontent.com/gabrielxrm-lab/sjfc-streamlit-app/main/player_photos/slideshow/20250817_085945.jpg"
 ]
 
 image_tags = "".join([f'<img class="slide" src="{url}">' for url in image_urls])
