@@ -13,13 +13,13 @@ with st.sidebar:
         st.image(logo_path, width=150)
     st.title("São Jorge FC")
     st.write("---")
-    # Botão de salvar foi removido daqui, pois está nas páginas de edição.
+    # Botão de salvar foi removido daqui
 
 st.title("🛡️ Central de Dados do São Jorge FC")
 st.markdown("##### // Monitoramento de Performance de Atletas //")
+# ... (o resto do arquivo permanece o mesmo)
 st.write("---")
 st.header("⏳ Próximo Jogo")
-
 countdown_html = """
 <style>
     .countdown-container { font-family: 'Consolas', 'Monaco', monospace; text-align: center; background-color: #262730; padding: 20px; border-radius: 10px; color: #FAFAFA; font-size: 1.5rem; }
