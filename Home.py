@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CSS para Estilos da Página ---
+# --- CSS para Fixar a Barra Lateral e Centralizar a Página ---
 st.markdown(
     """
     <style>
@@ -43,13 +43,12 @@ st.markdown(
             max-width: 220px;
             margin: 0 auto;
         }
-        /* NOVO ESTILO PARA DAR DESTAQUE AO DIA DO ANIVERSÁRIO */
         .birthday-day {
-            font-size: 2.5rem;      /* Tamanho grande */
-            font-weight: bold;      /* Negrito */
-            color: #1E88E5;         /* Cor azul, a mesma do contador */
-            line-height: 1;         /* Remove espaçamento extra */
-            margin-bottom: 10px;    /* Espaço abaixo do número */
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1E88E5;
+            line-height: 1;
+            margin-bottom: 10px;
         }
     </style>
     """,
@@ -88,8 +87,8 @@ with st.sidebar:
 
 # --- PÁGINA PRINCIPAL ---
 
-# --- TÍTULO CENTRALIZADO (COM URL DO LOGO CORRIGIDA) ---
-logo_url = f"https://raw.githubusercontent.com/{data_manager.GITHUB_USER}/{data_manager.GITHUB_REPO}/main/logo_sao_jorge.png"
+# --- TÍTULO CENTRALIZADO ---
+logo_url = data_manager.get_github_image_url("logo_sao_jorge.png")
 st.markdown(f"""
     <div style="text-align: center;">
         <img src="{logo_url}" alt="Logo SJFC" width="80">
@@ -125,14 +124,14 @@ else:
             with st.container(border=True):
                 st.subheader(player['name'])
                 image_url = data_manager.get_github_image_url(player.get('photo_file'))
-                st.image(image_url, use_column_width=True)
+                
+                # --- ALTERAÇÃO FEITA AQUI ---
+                st.image(image_url, use_container_width=True)
                 
                 dob = datetime.strptime(player.get('date_of_birth'), "%d/%m/%Y")
                 day_str = dob.strftime('%d')
                 st.caption("Dia")
-                # APLICA O NOVO ESTILO DE DESTAQUE AQUI
                 st.markdown(f"<p class='birthday-day'>{day_str}</p>", unsafe_allow_html=True)
-
                 if player.get('shirt_number'): st.markdown(f"**Camisa: {player.get('shirt_number')}**")
     st.markdown('</div>', unsafe_allow_html=True)
 st.write("---")
