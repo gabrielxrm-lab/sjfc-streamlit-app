@@ -44,15 +44,19 @@ def create_sidebar():
 
     IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 
-    # --- Menu de Navegação ---
+    # --- Menu de Navegação (CORRIGIDO) ---
     st.sidebar.write("---")
-    st.page_link("Home.py", label="🏠 Página Principal")
-    st.page_link("pages/1_Gerenciar_Jogadores.py", label="⚽ Gerenciar Jogadores")
+    
+    # Adicionado "st.sidebar." antes de cada page_link
+    st.sidebar.page_link("Home.py", label="🏠 Página Principal")
+    st.sidebar.page_link("pages/1_Gerenciar_Jogadores.py", label="⚽ Gerenciar Jogadores")
+    
     if IS_DIRETORIA:
-        st.page_link("pages/2_Mensalidades.py", label="💲 Mensalidades")
-    st.page_link("pages/Nova_Súmula.py", label="📋 Nova Súmula")
-    st.page_link("pages/sorteio_de_times.py", label="🎲 Sorteio de Times")
-    st.page_link("pages/Ranking.py", label="🏆 Ranking")
+        st.sidebar.page_link("pages/2_Mensalidades.py", label="💲 Mensalidades")
+        
+    st.sidebar.page_link("pages/Nova_Súmula.py", label="📋 Nova Súmula")
+    st.sidebar.page_link("pages/sorteio_de_times.py", label="🎲 Sorteio de Times")
+    st.sidebar.page_link("pages/Ranking.py", label="🏆 Ranking")
 
     # --- Rodapé da Barra Lateral ---
     st.sidebar.write("---")
