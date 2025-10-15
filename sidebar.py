@@ -5,8 +5,29 @@ import os
 
 def create_sidebar():
     """
-    Cria e gerencia toda a barra lateral, incluindo o login e a navegação.
+    Cria a barra lateral, aplicando o CSS global e gerenciando o login e a navegação.
     """
+    
+    # --- CSS GLOBAL (INCLUINDO A REGRA PARA ESCONDER O MENU AUTOMÁTICO) ---
+    st.markdown(
+        """
+        <style>
+            /* Esconde o menu de navegação automático do Streamlit */
+            [data-testid="stSidebarNav"] > ul {
+                display: none;
+            }
+            /* Fixa a barra lateral */
+            section[data-testid="stSidebar"] {
+                width: 300px;
+                position: fixed;
+                height: 100%;
+                top: 0;
+                left: 0;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     
     # --- Lógica de Perfil e Login ---
     if 'role' not in st.session_state: 
@@ -44,16 +65,12 @@ def create_sidebar():
 
     IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 
-    # --- Menu de Navegação (CORRIGIDO) ---
+    # --- Menu de Navegação ---
     st.sidebar.write("---")
-    
-    # Adicionado "st.sidebar." antes de cada page_link
     st.sidebar.page_link("Home.py", label="🏠 Página Principal")
     st.sidebar.page_link("pages/1_Gerenciar_Jogadores.py", label="⚽ Gerenciar Jogadores")
-    
     if IS_DIRETORIA:
         st.sidebar.page_link("pages/2_Mensalidades.py", label="💲 Mensalidades")
-        
     st.sidebar.page_link("pages/Nova_Súmula.py", label="📋 Nova Súmula")
     st.sidebar.page_link("pages/sorteio_de_times.py", label="🎲 Sorteio de Times")
     st.sidebar.page_link("pages/Ranking.py", label="🏆 Ranking")
