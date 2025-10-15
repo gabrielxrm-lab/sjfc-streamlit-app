@@ -3,6 +3,9 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import data_manager
+import sidebar
+
+sidebar.create_sidebar()
 
 # Garante que os dados sejam carregados sempre que a página for acessada
 data_manager.initialize_session_state()
@@ -62,3 +65,4 @@ else:
             st.toast("Alterações registradas na lista. Não esqueça de salvar!")
     else:
         st.warning("A lista de jogadores está vazia.")
+
