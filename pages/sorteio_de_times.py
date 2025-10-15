@@ -4,6 +4,9 @@ import pandas as pd
 import random
 from collections import defaultdict
 import data_manager
+import sidebar
+
+sidebar.create_sidebar()
 
 st.set_page_config(layout="wide", page_title="Sorteio de Times")
 data_manager.initialize_session_state()
@@ -45,3 +48,4 @@ with col_inter:
         df_inter = pd.DataFrame(sorted(st.session_state.team_inter, key=lambda p: p['name']))[['name', 'position']]
         st.dataframe(df_inter, hide_index=True, use_container_width=True)
     else: st.info("Time vazio.")
+
