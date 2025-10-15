@@ -4,7 +4,9 @@ import pandas as pd
 import data_manager
 from datetime import datetime
 import os
+import sidebar
 
+sidebar.create_sidebar()
 # --- LÓGICA DE PERMISSÃO ---
 IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 
@@ -83,3 +85,4 @@ if not df_players.empty:
                 ids_to_delete = df_players[df_players['name'].isin(players_to_delete_names)]['id'].tolist(); data_manager.delete_players_by_ids(ids_to_delete); st.session_state.dados['players'] = [p for p in st.session_state.dados['players'] if p['id'] not in ids_to_delete]; st.warning(f"{len(players_to_delete_names)} jogadores removidos."); st.rerun()
 else:
     st.info("Nenhum jogador cadastrado.")
+
