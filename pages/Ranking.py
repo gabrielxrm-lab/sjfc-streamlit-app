@@ -2,6 +2,9 @@
 import streamlit as st
 import pandas as pd
 import data_manager
+import sidebar
+
+sidebar.create_sidebar()
 
 st.set_page_config(layout="wide", page_title="Ranking Geral")
 if 'dados' not in st.session_state:
