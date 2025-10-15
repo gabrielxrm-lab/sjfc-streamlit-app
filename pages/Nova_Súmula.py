@@ -5,6 +5,9 @@ import datetime as dt
 import os
 import io
 from collections import defaultdict
+import sidebar
+
+sidebar.create_sidebar()
 
 try:
     # CORREÇÃO AQUI: 'platypus' em vez de 'plat-yous'
@@ -175,3 +178,4 @@ with st.container(border=True):
     if REPORTLAB_AVAILABLE and c2.button("Salvar Estatísticas e Baixar PDF", use_container_width=True, on_click=save_stats_and_download_sumula, disabled=not IS_DIRETORIA):
         buffer = io.BytesIO(); doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm); story = [Preformatted(sumula_final, getSampleStyleSheet()["Code"])]; doc.build(story); pdf_bytes = buffer.getvalue()
         st.download_button(label="Clique aqui para baixar o PDF", data=pdf_bytes, file_name=f"{nome_base_arquivo}.pdf", mime="application/pdf")
+
