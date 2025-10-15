@@ -46,14 +46,16 @@ IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 with st.sidebar:
     st.write("---")
     
-    # --- NAVEGAÇÃO MANUAL E CONDICIONAL ---
+    # --- NAVEGAÇÃO MANUAL CORRIGIDA ---
     st.page_link("Home.py", label="Página Principal", icon="🏠")
-    st.page_link("pages/1_⚽_Gerenciar_Jogadores.py", label="Gerenciar Jogadores", icon="⚽")
+    st.page_link("pages/1_Gerenciar_Jogadores.py", label="Gerenciar Jogadores", icon="⚽")
+    
     if IS_DIRETORIA:
-        st.page_link("pages/2_💲_Mensalidades.py", label="Mensalidades", icon="💲")
-    st.page_link("pages/3_📋_Nova_Súmula.py", label="Nova Súmula", icon="📋")
-    st.page_link("pages/4_🎲_Sorteio_de_Times.py", label="Sorteio de Times", icon="🎲")
-    st.page_link("pages/5_🏆_Ranking.py", label="Ranking", icon="🏆")
+        st.page_link("pages/2_Mensalidades.py", label="Mensalidades", icon="💲")
+        
+    st.page_link("pages/Nova_Súmula.py", label="Nova Súmula", icon="📋")
+    st.page_link("pages/sorteio_de_times.py", label="Sorteio de Times", icon="🎲")
+    st.page_link("pages/Ranking.py", label="Ranking", icon="🏆")
 
     st.write("---")
     logo_path = "logo_sao_jorge.png"
@@ -61,5 +63,5 @@ with st.sidebar:
     st.title("São Jorge FC"); st.write("---"); st.caption("Desenvolvido por:")
     st.markdown("**Gabriel Conrado**"); st.caption("📱 (21) 97275-7256")
 
-# --- O resto da página principal (sem alterações) ---
+# --- O resto do arquivo (sem alterações) ---
 # ...
