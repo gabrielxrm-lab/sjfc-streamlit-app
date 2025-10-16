@@ -51,8 +51,8 @@ def get_github_image_url(filename):
 
 # --- Funções de Dados ---
 def initialize_session_state():
-    if 'dados' not in st.session_state: st.session_state['dados'] = load_data_from_db()
-    os.makedirs(PLAYER_PHOTOS_DIR, exist_ok=True); os.makedirs(SUMULA_LEGACY_DIR, exist_ok=True)
+    if 'dados' not in st.session_state: 
+        st.session_state['dados'] = load_data_from_db()
 
 def load_data_from_db():
     if not supabase: return {'players': [], 'monthly_payments': {}, 'game_stats': []}
@@ -112,21 +112,13 @@ def delete_players_by_ids(ids_to_delete):
         supabase.table('Players').delete().in_('id', ids_to_delete).execute(); st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
     except Exception as e: st.error(f"Erro ao deletar jogadores: {e}")
 
-# --- NOVA FUNÇÃO PARA LIMPAR O RANKING ---
 def clear_game_stats():
-    """Apaga todos os registros da tabela game_stats."""
-    if not supabase:
-        st.error("Cliente Supabase não inicializado.")
-        return False
+    if not supabase: st.error("Cliente Supabase não inicializado."); return False
     try:
-        # Deleta todas as linhas da tabela (is not null é um truque para apagar tudo)
         supabase.table('game_stats').delete().neq('id', 0).execute()
-        # Limpa os dados na sessão atual
         st.session_state.dados['game_stats'] = []
         return True
-    except Exception as e:
-        st.error(f"Erro ao limpar o ranking: {e}")
-        return False
+    except Exception as e: st.error(f"Erro ao limpar o ranking: {e}"); return False
 
 def get_players_df():
     players = st.session_state.dados.get('players', []); return pd.DataFrame(players) if players else pd.DataFrame()
