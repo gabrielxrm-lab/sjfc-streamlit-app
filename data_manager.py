@@ -45,6 +45,8 @@ def get_photo_list_from_github():
 def get_github_image_url(filename):
     if not filename or filename == "Nenhuma":
         return "https://via.placeholder.com/200x200.png?text=Sem+Foto"
+    if filename == "logo_sao_jorge.png":
+        return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/{filename}"
     return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/{FOTOS_PATH}/{filename}"
 
 # --- Funções de Dados ---
@@ -72,35 +74,18 @@ def load_data_from_db():
 def save_data_to_db():
     if not supabase or 'dados' not in st.session_state: st.error("Cliente Supabase não inicializado."); return
     try:
-        players_to_process = st.session_state.dados.get('players', [])
-        
-        # --- LÓGICA DE SALVAMENTO CORRIGIDA E SEPARADA ---
-        if players_to_process:
-            new_players = []
-            existing_players = []
-            
-            # 1. Separa jogadores novos dos existentes
-            for player in players_to_process:
-                if player.get('id'):
-                    existing_players.append(player)
+        players_to_save = st.session_state.dados.get('players', [])
+        if players_to_save:
+            upsert_list = []
+            for player in players_to_save:
+                if not player.get('id'):
+                    new_player = player.copy(); new_player.pop('id', None); upsert_list.append(new_player)
                 else:
-                    new_player_data = player.copy()
-                    new_player_data.pop('id', None)
-                    new_players.append(new_player_data)
-
-            # 2. Insere os jogadores novos (INSERT)
-            if new_players:
-                supabase.table('Players').insert(new_players).execute()
-            
-            # 3. Atualiza os jogadores existentes (UPDATE/UPSERT)
-            if existing_players:
-                supabase.table('Players').upsert(existing_players).execute()
-
-        # O resto da função continua igual...
+                    upsert_list.append(player)
+            if upsert_list: supabase.table('Players').upsert(upsert_list).execute()
         payments_to_insert = []
         reloaded_players = supabase.table('Players').select('id').execute().data
         player_ids_in_app = [p['id'] for p in reloaded_players]
-        
         if player_ids_in_app:
             supabase.table('monthly_payments').delete().in_('player_id', player_ids_in_app).execute()
             payments_data = st.session_state.dados.get('monthly_payments', {})
@@ -110,10 +95,8 @@ def save_data_to_db():
                         for month, status in months.items():
                             payments_to_insert.append({'player_id': int(player_id), 'year': int(year), 'month': int(month), 'status': status})
             if payments_to_insert: supabase.table('monthly_payments').insert(payments_to_insert).execute()
-        
         st.success("✅ Dados salvos na nuvem!")
         st.session_state['dados'] = load_data_from_db(); st.rerun()
-
     except Exception as e: st.error(f"Erro ao salvar dados no Supabase: {e}")
 
 def save_game_stats_to_db(stats_list):
@@ -128,6 +111,22 @@ def delete_players_by_ids(ids_to_delete):
     try:
         supabase.table('Players').delete().in_('id', ids_to_delete).execute(); st.toast(f"{len(ids_to_delete)} jogador(es) removido(s) do banco de dados.")
     except Exception as e: st.error(f"Erro ao deletar jogadores: {e}")
+
+# --- NOVA FUNÇÃO PARA LIMPAR O RANKING ---
+def clear_game_stats():
+    """Apaga todos os registros da tabela game_stats."""
+    if not supabase:
+        st.error("Cliente Supabase não inicializado.")
+        return False
+    try:
+        # Deleta todas as linhas da tabela (is not null é um truque para apagar tudo)
+        supabase.table('game_stats').delete().neq('id', 0).execute()
+        # Limpa os dados na sessão atual
+        st.session_state.dados['game_stats'] = []
+        return True
+    except Exception as e:
+        st.error(f"Erro ao limpar o ranking: {e}")
+        return False
 
 def get_players_df():
     players = st.session_state.dados.get('players', []); return pd.DataFrame(players) if players else pd.DataFrame()
