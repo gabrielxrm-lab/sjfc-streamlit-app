@@ -6,13 +6,13 @@ import data_manager
 from datetime import datetime
 import os
 
-# Cria a barra lateral e aplica os estilos
+# --- INICIALIZAÇÃO DA PÁGINA ---
+st.set_page_config(layout="wide", page_title="Gerenciar Jogadores")
 sidebar.create_sidebar()
+data_manager.initialize_session_state() # <-- LINHA ESSENCIAL QUE ESTAVA FALTANDO
 
 # --- LÓGICA DE PERMISSÃO ---
 IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
-
-st.set_page_config(layout="wide", page_title="Gerenciar Jogadores")
 
 # --- Título e Botão Salvar ---
 c1, c2 = st.columns([3, 1])
@@ -75,7 +75,6 @@ if not df_players.empty:
     if player_to_view_name:
         player_data = df_players[df_players['name'] == player_to_view_name].iloc[0].to_dict()
         
-        # --- LÓGICA DE CÁLCULO DAS ESTATÍSTICAS ---
         game_stats = st.session_state.dados.get('game_stats', [])
         total_gols, total_amarelos, total_vermelhos = 0, 0, 0
         if game_stats:
@@ -98,7 +97,6 @@ if not df_players.empty:
                 st.write(f"**Data Nasc.:** {player_data.get('date_of_birth', 'N/A')}")
                 st.write(f"**Telefone:** {player_data.get('phone', 'N/A')}")
                 st.write(f"**No Time Desde:** {player_data.get('team_start_date', 'N/A')}")
-
                 st.write("---")
                 st.subheader("Estatísticas Gerais")
                 stat_cols = st.columns(3)
