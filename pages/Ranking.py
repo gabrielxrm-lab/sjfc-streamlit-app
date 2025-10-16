@@ -1,14 +1,15 @@
 # pages/5_🏆_Ranking.py
 import streamlit as st
+import sidebar
 import pandas as pd
 import data_manager
-import sidebar
 
-sidebar.create_sidebar()
-
+# --- Inicialização da Página ---
 st.set_page_config(layout="wide", page_title="Ranking Geral")
-if 'dados' not in st.session_state:
-    data_manager.initialize_session_state()
+sidebar.create_sidebar()
+data_manager.initialize_session_state()
+
+IS_DIRETORIA = st.session_state.get('role') == 'Diretoria'
 
 st.title("🏆 Ranking Geral de Atletas")
 st.info("As estatísticas são atualizadas sempre que uma nova súmula é salva.")
@@ -50,3 +51,26 @@ else:
         premios_df = premios_df[ (premios_df['Craque_do_Jogo'] > 0) | (premios_df['Goleiro_do_Jogo'] > 0) | (premios_df['Gol_do_Jogo'] > 0) ].sort_values(by='Craque_do_Jogo', ascending=False).reset_index(drop=True)
         premios_df.index += 1
         st.dataframe(premios_df, use_container_width=True)
+
+# --- NOVA SEÇÃO DE LIMPEZA DO RANKING (SÓ APARECE PARA DIRETORIA) ---
+if IS_DIRETORIA:
+    st.write("---")
+    st.header("⚠️ Área Restrita")
+    with st.expander("Limpar Histórico do Ranking"):
+        st.warning("Esta ação apagará permanentemente TODAS as estatísticas de TODAS as partidas salvas. Esta ação é irreversível.")
+        
+        password = st.text_input("Para confirmar, digite a senha da Diretoria:", type="password", key="password_clear_ranking")
+        
+        if st.button("Limpar Ranking Permanentemente", type="primary"):
+            creds = st.secrets.get("credentials", {})
+            correct_password = creds.get("diretoria_password")
+            
+            if correct_password and password == correct_password:
+                # Chama a função de limpeza e verifica se deu certo
+                if data_manager.clear_game_stats():
+                    st.success("O histórico do ranking foi limpo com sucesso!")
+                    st.rerun() # Recarrega a página para mostrar o ranking vazio
+                else:
+                    st.error("Ocorreu um erro ao tentar limpar o ranking.")
+            else:
+                st.error("Senha incorreta. A operação foi cancelada.")
