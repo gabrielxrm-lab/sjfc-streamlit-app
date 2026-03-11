@@ -26,8 +26,67 @@ async function readData() {
   return JSON.parse(data);
 }
 
+async function pushToGitHub(data: any) {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO || 'gabrielxrm-lab/sjfc-streamlit-app';
+  const branch = process.env.GITHUB_BRANCH || 'main';
+  const filePath = 'data.json';
+
+  if (!token) {
+    console.log('GITHUB_TOKEN não configurado. Pulando commit no GitHub.');
+    return;
+  }
+
+  try {
+    const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+    
+    // 1. Obter o SHA atual do arquivo
+    const getRes = await fetch(`${url}?ref=${branch}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    let sha = '';
+    if (getRes.ok) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+    }
+
+    // 2. Atualizar o arquivo
+    const content = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Auto-update data.json via AI Studio',
+        content: content,
+        sha: sha || undefined,
+        branch: branch
+      })
+    });
+
+    if (!putRes.ok) {
+      const errorData = await putRes.json();
+      console.error('Falha ao fazer push para o GitHub:', errorData);
+    } else {
+      console.log('data.json atualizado com sucesso no GitHub!');
+    }
+  } catch (error) {
+    console.error('Erro ao fazer push para o GitHub:', error);
+  }
+}
+
 async function writeData(data: any) {
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+  
+  // Dispara o push para o GitHub em background
+  pushToGitHub(data).catch(console.error);
 }
 
 // API Routes
@@ -114,6 +173,31 @@ app.delete('/api/stats', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear stats' });
+  }
+});
+
+app.put('/api/stats/player', async (req, res) => {
+  try {
+    const data = await readData();
+    const { player_name, goals, yellow_cards, red_cards, craque, goleiro, gol } = req.body;
+
+    data.game_stats = data.game_stats.filter((s: any) => s.player_name !== player_name);
+
+    data.game_stats.push({
+      game_date: new Date().toISOString().split('T')[0],
+      player_name,
+      goals: Number(goals || 0),
+      yellow_cards: Number(yellow_cards || 0),
+      red_cards: Number(red_cards || 0),
+      craque_do_jogo: Number(craque || 0),
+      goleiro_do_jogo: Number(goleiro || 0),
+      gol_do_jogo: Number(gol || 0)
+    });
+
+    await writeData(data);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update stats' });
   }
 });
 
